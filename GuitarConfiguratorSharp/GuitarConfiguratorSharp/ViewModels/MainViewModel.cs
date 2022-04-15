@@ -32,9 +32,7 @@ namespace GuitarConfiguratorSharp.ViewModels
 
         public MainViewModel()
         {
-            var result = PlatformIOFinder.FindPython().Result;
-            Console.WriteLine(result);
-            result = PlatformIOFinder.FindPlatformIO().Result;
+            var result = PlatformIOUtils.RunPlatformIO("pico","run").Result;
             Console.WriteLine(result);
 
             
