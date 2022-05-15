@@ -2,80 +2,186 @@ using System;
 using System.IO;
 using ICSharpCode.SharpZipLib.GZip;
 using ICSharpCode.SharpZipLib.Tar;
-using System.Net;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Linq;
-using System.Net.Http;
 using System.Threading.Tasks;
-using System.Collections.Generic;
-using System.Security.Cryptography;
 using System.Text;
-using System.Web;
 using Avalonia;
 using Avalonia.Platform;
 using System.IO.Compression;
 using GuitarConfiguratorSharp.Utils.Github;
+using IniParser;
+using IniParser.Model;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace GuitarConfiguratorSharp.Utils
 {
-    public class PlatformIOUtils
-    {
-        // TODO: instead of all these console.writelines, expose a percentage and message as a event that can be listened to, similar to what HttpClientDownloadWithProgress is doing.
 
-        private async static Task<string?> FindPlatformIO()
+    public class PlatformIO
+    {
+        public delegate void ProgressChangedHandler(string message, int state, double progressPercentage);
+
+        public event ProgressChangedHandler? ProgressChanged;
+
+        public delegate void TextChangedHandler(string message, bool clear);
+
+        public event TextChangedHandler? TextChanged;
+        public delegate void PlatformIOReadyHandler();
+
+        public event PlatformIOReadyHandler? PlatformIOReady;
+        public delegate void CommandCompleteHandler();
+
+        public event CommandCompleteHandler? CommandComplete;
+
+        private string pioExecutable;
+        private string projectDir;
+        private List<string> environments;
+
+        public bool ready { get; }
+
+        public PlatformIO()
+        {
+            environments = new List<string>();
+            string appdataFolder = GetAppDataFolder();
+            string pioFolder = Path.Combine(appdataFolder, "platformio");
+            string pioExecutablePath = Path.Combine(pioFolder, "penv", "bin", "platformio");
+            this.pioExecutable = pioExecutablePath;
+            this.projectDir = "/home/sanjay/Code/ArdwiinoV3/src";
+            var parser = new FileIniDataParser();
+            parser.Parser.Configuration.SkipInvalidLines = true;
+            IniData data = parser.ReadFile(Path.Combine(projectDir, "platformio.ini"));
+            foreach (var key in data.Sections)
+            {
+                if (key.SectionName.StartsWith("env:"))
+                {
+                    environments.Add(key.SectionName.Split(':')[1]);
+                }
+            }
+            ready = System.IO.File.Exists(pioExecutablePath);
+        }
+
+        public async Task InitialisePlatformIO()
         {
             string appdataFolder = GetAppDataFolder();
             string pioFolder = Path.Combine(appdataFolder, "platformio");
             string installerZipPath = Path.Combine(pioFolder, "installer.zip");
             string installerPath = Path.Combine(pioFolder, "installer");
-            string pioExecutable = Path.Combine(pioFolder, "penv", "bin", "platformio");
-            if (!System.IO.File.Exists(pioExecutable))
+            string pioExecutablePath = Path.Combine(pioFolder, "penv", "bin", "platformio");
+            this.pioExecutable = pioExecutablePath;
+            if (!System.IO.File.Exists(pioExecutablePath))
             {
+                this.ProgressChanged?.Invoke("Extracting Platform.IO Installer", 0, 0);
                 Directory.CreateDirectory(pioFolder);
                 Directory.CreateDirectory(installerPath);
                 using (var f = System.IO.File.OpenWrite(installerZipPath))
                 {
                     var assets = AvaloniaLocator.Current.GetService<IAssetLoader>();
-                    using (var target = assets.Open(new Uri("avares://GuitarConfiguratorSharp/Assets/pio-installer.zip")))
+                    using (var target = assets?.Open(new Uri("Assets/pio-installer.zip")))
                     {
                         await target.CopyToAsync(f).ConfigureAwait(false);
                     }
                 }
                 ZipFile.ExtractToDirectory(installerZipPath, installerPath);
+                this.ProgressChanged?.Invoke("Searching for python", 1, 0);
+                var python = await FindPython();
+                this.ProgressChanged?.Invoke("Installing Platform.IO", 2, 10);
                 Process installerProcess = new Process();
-                installerProcess.StartInfo.FileName = await FindPython();
+                installerProcess.StartInfo.FileName = python;
                 installerProcess.StartInfo.Arguments = $"-m pioinstaller";
                 installerProcess.StartInfo.EnvironmentVariables["PYTHONPATH"] = installerPath;
                 installerProcess.StartInfo.EnvironmentVariables["PLATFORMIO_CORE_DIR"] = pioFolder;
                 installerProcess.StartInfo.UseShellExecute = false;
+                installerProcess.StartInfo.RedirectStandardOutput = true;
+                installerProcess.StartInfo.RedirectStandardError = true;
+                installerProcess.OutputDataReceived += (sender, e) => TextChanged?.Invoke(e.Data, false);
+                installerProcess.ErrorDataReceived += (sender, e) => TextChanged?.Invoke(e.Data, false);
                 installerProcess.Start();
+                installerProcess.BeginOutputReadLine();
+                installerProcess.BeginErrorReadLine();
                 installerProcess.WaitForExit();
+                System.IO.File.Delete(installerZipPath);
+                System.IO.Directory.Delete(installerPath, true);
+                await RunPlatformIO(null, "run", "Building packages", 2, 20, 90).ConfigureAwait(false);
+                await RunPlatformIO(null, "system prune -f", "Cleaning up", 2, 90, 90).ConfigureAwait(false);
             }
-            return pioExecutable;
+            this.ProgressChanged?.Invoke("Ready", 2, 100);
+            this.PlatformIOReady?.Invoke();
         }
 
-        public async static Task<string> RunPlatformIO(string environment, string command)
+        public Task<int> RunPlatformIO(string? environment, string command, string progress_message, int progress_state, double progress_starting_percentage, double progress_ending_percentage)
         {
+            // When environment isn't set, we should be able to get a list of all targets, and then create percentages based on what target we are on
+            var tcs = new TaskCompletionSource<int>();
+            if (pioExecutable == null)
+            {
+                tcs.SetResult(0);
+            }
+            // TODO: can we get some sort of progress out of the text? I suspect not for compiling, but maybe for programming?
+            // If we can, then divide it into percentageStep
+            double percentageStep = (progress_ending_percentage - progress_starting_percentage) / environments.Count;
+            double currentProgress = progress_starting_percentage;
+            bool building = environment == null && command == "run";
             string appdataFolder = GetAppDataFolder();
             string pioFolder = Path.Combine(appdataFolder, "platformio");
             Process process = new Process();
-            process.StartInfo.FileName = await FindPlatformIO().ConfigureAwait(false);
-            process.StartInfo.WorkingDirectory = "/home/sanjay/Code/ArdwiinoV3/src";
+            process.EnableRaisingEvents = true;
+            process.StartInfo.FileName = pioExecutable;
+            process.StartInfo.WorkingDirectory = projectDir;
             process.StartInfo.EnvironmentVariables["PLATFORMIO_CORE_DIR"] = pioFolder;
-            process.StartInfo.Arguments = $"--environment {environment} {command}";
+            if (environment != null)
+            {
+                process.StartInfo.Arguments = $"--environment {environment} {command}";
+                percentageStep = (progress_ending_percentage - progress_starting_percentage);
+            }
+            else
+            {
+                process.StartInfo.Arguments = $"{command}";
+
+            }
             process.StartInfo.UseShellExecute = false;
+            process.StartInfo.RedirectStandardOutput = true;
+            process.StartInfo.RedirectStandardError = true;
+
+            process.Exited += (sender, args) =>
+            {
+                tcs.SetResult(process.ExitCode);
+                process.Dispose();
+                CommandComplete?.Invoke();
+                this.ProgressChanged?.Invoke($"{progress_message} - Done", progress_state, currentProgress);
+            };
+            TextChanged?.Invoke("", true);
+            process.OutputDataReceived += (sender, e) =>
+            {
+                TextChanged?.Invoke(e.Data, false);
+                if (building && e.Data != null)
+                {
+                    var matches = Regex.Matches(e.Data, @"Processing (.+?) \(.+\)");
+                    if (matches.Count > 0)
+                    {
+                        this.ProgressChanged?.Invoke($"{progress_message} - {matches[0].Groups[1].Value}", progress_state, currentProgress);
+                        currentProgress += percentageStep;
+                    }
+                    Console.WriteLine(e.Data);
+                }
+            };
+
+            process.ErrorDataReceived += (sender, e) => TextChanged?.Invoke(e.Data, false);
+
             process.Start();
-            process.WaitForExit();
-            return "";
+
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+
+            return tcs.Task;
         }
 
-        private static string GetAppDataFolder()
+        private string GetAppDataFolder()
         {
             string folder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             return Path.Combine(folder, "SantrollerConfigurator");
         }
-        private async static Task<string?> FindPython()
+        private async Task<string?> FindPython()
         {
             string appdataFolder = GetAppDataFolder();
             string pythonFolder = Path.Combine(appdataFolder, "python");
@@ -89,7 +195,6 @@ namespace GuitarConfiguratorSharp.Utils
                 foundExecutable = GetFullPath(executable);
                 if (foundExecutable != null)
                 {
-                    Console.WriteLine($"Found python at: {foundExecutable}");
                     return executable;
                 }
             }
@@ -104,15 +209,12 @@ namespace GuitarConfiguratorSharp.Utils
             Directory.CreateDirectory(pythonFolder);
             if (foundExecutable == null)
             {
-
-                Console.WriteLine("Downloading python portable");
+                this.ProgressChanged?.Invoke("Downloading python portable", 1, 10);
                 var pythonJsonLoc = Path.Combine(pythonFolder, "python.json");
                 string arch = GetSysType();
                 using (var download = new HttpClientDownloadWithProgress("https://api.github.com/repos/indygreg/python-build-standalone/releases/62235403", pythonJsonLoc))
                 {
-                    download.ProgressChanged += (totalFileSize, totalBytesDownloaded, percentage) => Console.WriteLine($"json: {percentage}");
                     await download.StartDownload().ConfigureAwait(false);
-                    Console.WriteLine("downloaded json");
                 };
                 var jsonRelease = System.IO.File.ReadAllText(pythonJsonLoc);
                 GithubRelease release = GithubRelease.FromJson(jsonRelease);
@@ -123,9 +225,8 @@ namespace GuitarConfiguratorSharp.Utils
                     {
                         using (var download = new HttpClientDownloadWithProgress(asset.BrowserDownloadUrl.ToString(), pythonLoc))
                         {
-                            download.ProgressChanged += (totalFileSize, totalBytesDownloaded, percentage) => Console.WriteLine($"python: {percentage}");
+                            download.ProgressChanged += (totalFileSize, totalBytesDownloaded, percentage) => this.ProgressChanged?.Invoke("Downloading python portable", 1, 20 + (percentage * 0.4) ?? 0); ;
                             await download.StartDownload().ConfigureAwait(false);
-                            Console.WriteLine("downloaded python");
                         };
                         found = true;
                         break;
@@ -135,9 +236,9 @@ namespace GuitarConfiguratorSharp.Utils
                 {
                     return null;
                 }
+                this.ProgressChanged?.Invoke("Extracting python portable", 1, 60);
                 using (var inStream = System.IO.File.OpenRead(pythonLoc))
                 {
-                    Console.WriteLine("Extracting python");
                     Stream gzipStream = new GZipInputStream(inStream);
 
                     TarArchive tarArchive = TarArchive.CreateInputTarArchive(gzipStream, Encoding.UTF8);
@@ -162,7 +263,7 @@ namespace GuitarConfiguratorSharp.Utils
             return null;
         }
 
-        public static string[] GetPythonExecutables()
+        public string[] GetPythonExecutables()
         {
             var executables = new string[] { "python3", "python", Path.Combine("bin", "python3.10") };
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -171,7 +272,7 @@ namespace GuitarConfiguratorSharp.Utils
             }
             return executables;
         }
-        public static string GetSysType()
+        public string GetSysType()
         {
             string arch = "unknown";
             switch (RuntimeInformation.OSArchitecture)
@@ -203,12 +304,12 @@ namespace GuitarConfiguratorSharp.Utils
             }
             return "unsupported";
         }
-        public static bool ExistsOnPath(string fileName)
+        public bool ExistsOnPath(string fileName)
         {
             return GetFullPath(fileName) != null;
         }
 
-        public static string? GetFullPath(string fileName)
+        public string? GetFullPath(string fileName)
         {
             if (System.IO.File.Exists(fileName))
                 return Path.GetFullPath(fileName);
@@ -221,88 +322,6 @@ namespace GuitarConfiguratorSharp.Utils
                     return fullPath;
             }
             return null;
-        }
-        public class HttpClientDownloadWithProgress : IDisposable
-        {
-            private readonly string _downloadUrl;
-            private readonly string _destinationFilePath;
-
-            private HttpClient _httpClient;
-
-            public delegate void ProgressChangedHandler(long? totalFileSize, long totalBytesDownloaded, double? progressPercentage);
-
-            public event ProgressChangedHandler? ProgressChanged;
-
-            public HttpClientDownloadWithProgress(string downloadUrl, string destinationFilePath)
-            {
-                _downloadUrl = downloadUrl;
-                _destinationFilePath = destinationFilePath;
-                _httpClient = new HttpClient { Timeout = TimeSpan.FromDays(1) };
-                _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (compatible; AcmeInc/1.0)");
-            }
-
-            public async Task StartDownload()
-            {
-                using (var response = await _httpClient.GetAsync(_downloadUrl, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false))
-                    await DownloadFileFromHttpResponseMessage(response).ConfigureAwait(false);
-            }
-
-            private async Task DownloadFileFromHttpResponseMessage(HttpResponseMessage response)
-            {
-                response.EnsureSuccessStatusCode();
-
-                var totalBytes = response.Content.Headers.ContentLength;
-
-                using (var contentStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
-                    await ProcessContentStream(totalBytes, contentStream).ConfigureAwait(false);
-            }
-
-            private async Task ProcessContentStream(long? totalDownloadSize, Stream contentStream)
-            {
-                var totalBytesRead = 0L;
-                var readCount = 0L;
-                var buffer = new byte[8192];
-                var isMoreToRead = true;
-                using (var fileStream = new FileStream(_destinationFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true))
-                {
-                    do
-                    {
-                        var bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length);
-                        if (bytesRead == 0)
-                        {
-                            isMoreToRead = false;
-                            TriggerProgressChanged(totalDownloadSize, totalBytesRead);
-                            continue;
-                        }
-
-                        await fileStream.WriteAsync(buffer, 0, bytesRead);
-
-                        totalBytesRead += bytesRead;
-                        readCount += 1;
-
-                        if (readCount % 100 == 0)
-                            TriggerProgressChanged(totalDownloadSize, totalBytesRead);
-                    }
-                    while (isMoreToRead);
-                }
-            }
-
-            private void TriggerProgressChanged(long? totalDownloadSize, long totalBytesRead)
-            {
-                if (ProgressChanged == null)
-                    return;
-
-                double? progressPercentage = null;
-                if (totalDownloadSize.HasValue)
-                    progressPercentage = Math.Round((double)totalBytesRead / totalDownloadSize.Value * 100, 2);
-
-                ProgressChanged(totalDownloadSize, totalBytesRead, progressPercentage);
-            }
-
-            public void Dispose()
-            {
-                _httpClient?.Dispose();
-            }
         }
     }
 }
