@@ -77,7 +77,7 @@ namespace GuitarConfiguratorSharp.Utils
                 using (var f = System.IO.File.OpenWrite(installerZipPath))
                 {
                     var assets = AvaloniaLocator.Current.GetService<IAssetLoader>();
-                    using (var target = assets?.Open(new Uri("Assets/pio-installer.zip")))
+                    using (var target = assets!.Open(new Uri("/Assets/pio-installer.zip")))
                     {
                         await target.CopyToAsync(f).ConfigureAwait(false);
                     }
@@ -94,8 +94,8 @@ namespace GuitarConfiguratorSharp.Utils
                 installerProcess.StartInfo.UseShellExecute = false;
                 installerProcess.StartInfo.RedirectStandardOutput = true;
                 installerProcess.StartInfo.RedirectStandardError = true;
-                installerProcess.OutputDataReceived += (sender, e) => TextChanged?.Invoke(e.Data, false);
-                installerProcess.ErrorDataReceived += (sender, e) => TextChanged?.Invoke(e.Data, false);
+                installerProcess.OutputDataReceived += (sender, e) => TextChanged?.Invoke(e.Data!, false);
+                installerProcess.ErrorDataReceived += (sender, e) => TextChanged?.Invoke(e.Data!, false);
                 installerProcess.Start();
                 installerProcess.BeginOutputReadLine();
                 installerProcess.BeginErrorReadLine();
@@ -153,7 +153,7 @@ namespace GuitarConfiguratorSharp.Utils
             TextChanged?.Invoke("", true);
             process.OutputDataReceived += (sender, e) =>
             {
-                TextChanged?.Invoke(e.Data, false);
+                TextChanged?.Invoke(e.Data!, false);
                 if (building && e.Data != null)
                 {
                     var matches = Regex.Matches(e.Data, @"Processing (.+?) \(.+\)");
@@ -166,7 +166,7 @@ namespace GuitarConfiguratorSharp.Utils
                 }
             };
 
-            process.ErrorDataReceived += (sender, e) => TextChanged?.Invoke(e.Data, false);
+            process.ErrorDataReceived += (sender, e) => TextChanged?.Invoke(e.Data!, false);
 
             process.Start();
 
@@ -219,11 +219,11 @@ namespace GuitarConfiguratorSharp.Utils
                 var jsonRelease = System.IO.File.ReadAllText(pythonJsonLoc);
                 GithubRelease release = GithubRelease.FromJson(jsonRelease);
                 bool found = false;
-                foreach (var asset in release.Assets)
+                foreach (var asset in release.Assets!)
                 {
-                    if (asset.Name.EndsWith($"{arch}-install_only.tar.gz"))
+                    if (asset.Name!.EndsWith($"{arch}-install_only.tar.gz"))
                     {
-                        using (var download = new HttpClientDownloadWithProgress(asset.BrowserDownloadUrl.ToString(), pythonLoc))
+                        using (var download = new HttpClientDownloadWithProgress(asset.BrowserDownloadUrl!.ToString(), pythonLoc))
                         {
                             download.ProgressChanged += (totalFileSize, totalBytesDownloaded, percentage) => this.ProgressChanged?.Invoke("Downloading python portable", 1, 20 + (percentage * 0.4) ?? 0); ;
                             await download.StartDownload().ConfigureAwait(false);
@@ -314,7 +314,7 @@ namespace GuitarConfiguratorSharp.Utils
             if (System.IO.File.Exists(fileName))
                 return Path.GetFullPath(fileName);
 
-            var values = Environment.GetEnvironmentVariable("PATH");
+            var values = Environment.GetEnvironmentVariable("PATH")!;
             foreach (var path in values.Split(Path.PathSeparator))
             {
                 var fullPath = Path.Combine(path, fileName);
