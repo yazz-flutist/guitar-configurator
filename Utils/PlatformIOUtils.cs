@@ -109,6 +109,36 @@ namespace GuitarConfiguratorSharp.Utils
             this.PlatformIOReady?.Invoke();
         }
 
+        public async Task<PlatformIOPort[]> GetPorts()
+        {
+            if (pioExecutable == null)
+            {
+                return new PlatformIOPort[]{};
+            }
+            
+            string appdataFolder = GetAppDataFolder();
+            string pioFolder = Path.Combine(appdataFolder, "platformio");
+            Process process = new Process();
+            process.EnableRaisingEvents = true;
+            process.StartInfo.FileName = pioExecutable;
+            process.StartInfo.WorkingDirectory = projectDir;
+            process.StartInfo.EnvironmentVariables["PLATFORMIO_CORE_DIR"] = pioFolder;
+           
+            process.StartInfo.Arguments = $"device list --json-output";
+
+            process.StartInfo.UseShellExecute = false;
+            process.StartInfo.RedirectStandardOutput = true;
+            process.StartInfo.RedirectStandardError = true;
+
+            
+            process.Start();
+            string output = process.StandardOutput.ReadToEnd();
+            await process.WaitForExitAsync();
+            
+            return PlatformIOPort.FromJson(output);
+
+        }
+
         public Task<int> RunPlatformIO(string? environment, string command, string progress_message, int progress_state, double progress_starting_percentage, double progress_ending_percentage)
         {
             // When environment isn't set, we should be able to get a list of all targets, and then create percentages based on what target we are on
