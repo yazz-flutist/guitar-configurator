@@ -249,7 +249,7 @@ namespace GuitarConfiguratorSharp.Utils
                 var jsonRelease = System.IO.File.ReadAllText(pythonJsonLoc);
                 GithubRelease release = GithubRelease.FromJson(jsonRelease);
                 bool found = false;
-                foreach (var asset in release.Assets!)
+                foreach (var asset in release.Assets)
                 {
                     if (asset.Name!.EndsWith($"{arch}-install_only.tar.gz"))
                     {
