@@ -51,6 +51,17 @@ namespace GuitarConfiguratorSharp.Utils
             ready = System.IO.Directory.Exists(this.projectDir) && System.IO.File.Exists(pioExecutablePath);
         }
 
+        public async Task RevertFirmware() {
+            string appdataFolder = GetAppDataFolder();
+            if (System.IO.Directory.Exists(this.projectDir))
+            {
+                System.IO.Directory.Delete(this.projectDir, true);
+            }
+            this.ProgressChanged?.Invoke("Extracting Firmware", 0, 0);
+            string firmwareZipPath = Path.Combine(appdataFolder, "firmware.zip");
+            await AssetUtils.ExtractZip("firmware.zip",firmwareZipPath, projectDir);
+        }
+
         public async Task InitialisePlatformIO()
         {
             string appdataFolder = GetAppDataFolder();
@@ -60,12 +71,8 @@ namespace GuitarConfiguratorSharp.Utils
             string pioExecutablePath = Path.Combine(pioFolder, "penv", "bin", "platformio");
             this.pioExecutable = pioExecutablePath;
 
-            if (!System.IO.Directory.Exists(this.projectDir))
-            {
-                this.ProgressChanged?.Invoke("Extracting Firmware", 0, 0);
-                string firmwareZipPath = Path.Combine(appdataFolder, "firmware.zip");
-                await AssetUtils.ExtractZip("firmware.zip",firmwareZipPath, projectDir);
-            }
+            // On startup, reinstall the firmware, this will make sure that an update goes out, and also makes sure that the firmware is clean.
+            await RevertFirmware();
             var parser = new FileIniDataParser();
             parser.Parser.Configuration.SkipInvalidLines = true;
             IniData data = parser.ReadFile(Path.Combine(projectDir, "platformio.ini"));
