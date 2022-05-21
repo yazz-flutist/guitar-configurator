@@ -47,18 +47,8 @@ namespace GuitarConfiguratorSharp.Utils
             string pioFolder = Path.Combine(appdataFolder, "platformio");
             string pioExecutablePath = Path.Combine(pioFolder, "penv", "bin", "platformio");
             this.pioExecutable = pioExecutablePath;
-            this.projectDir = "/home/sanjay/Code/ArdwiinoV3/src";
-            var parser = new FileIniDataParser();
-            parser.Parser.Configuration.SkipInvalidLines = true;
-            IniData data = parser.ReadFile(Path.Combine(projectDir, "platformio.ini"));
-            foreach (var key in data.Sections)
-            {
-                if (key.SectionName.StartsWith("env:"))
-                {
-                    environments.Add(key.SectionName.Split(':')[1]);
-                }
-            }
-            ready = System.IO.File.Exists(pioExecutablePath);
+            this.projectDir = Path.Combine(appdataFolder, "firmware");
+            ready = System.IO.Directory.Exists(this.projectDir) && System.IO.File.Exists(pioExecutablePath);
         }
 
         public async Task InitialisePlatformIO()
@@ -69,20 +59,29 @@ namespace GuitarConfiguratorSharp.Utils
             string installerPath = Path.Combine(pioFolder, "installer");
             string pioExecutablePath = Path.Combine(pioFolder, "penv", "bin", "platformio");
             this.pioExecutable = pioExecutablePath;
+
+            if (!System.IO.Directory.Exists(this.projectDir))
+            {
+                this.ProgressChanged?.Invoke("Extracting Firmware", 0, 0);
+                string firmwareZipPath = Path.Combine(appdataFolder, "firmware.zip");
+                await AssetUtils.ExtractZip("firmware.zip",firmwareZipPath, projectDir);
+            }
+            var parser = new FileIniDataParser();
+            parser.Parser.Configuration.SkipInvalidLines = true;
+            IniData data = parser.ReadFile(Path.Combine(projectDir, "platformio.ini"));
+            foreach (var key in data.Sections)
+            {
+                if (key.SectionName.StartsWith("env:"))
+                {
+                    environments.Add(key.SectionName.Split(':')[1]);
+                }
+            }
             if (!System.IO.File.Exists(pioExecutablePath))
             {
                 this.ProgressChanged?.Invoke("Extracting Platform.IO Installer", 0, 0);
                 Directory.CreateDirectory(pioFolder);
                 Directory.CreateDirectory(installerPath);
-                using (var f = System.IO.File.OpenWrite(installerZipPath))
-                {
-                    var assets = AvaloniaLocator.Current.GetService<IAssetLoader>();
-                    using (var target = assets!.Open(new Uri("/Assets/pio-installer.zip")))
-                    {
-                        await target.CopyToAsync(f).ConfigureAwait(false);
-                    }
-                }
-                ZipFile.ExtractToDirectory(installerZipPath, installerPath);
+                await AssetUtils.ExtractZip("pio-installer.zip",installerZipPath, installerPath);
                 this.ProgressChanged?.Invoke("Searching for python", 1, 0);
                 var python = await FindPython();
                 this.ProgressChanged?.Invoke("Installing Platform.IO", 2, 10);
@@ -113,9 +112,9 @@ namespace GuitarConfiguratorSharp.Utils
         {
             if (pioExecutable == null)
             {
-                return new PlatformIOPort[]{};
+                return new PlatformIOPort[] { };
             }
-            
+
             string appdataFolder = GetAppDataFolder();
             string pioFolder = Path.Combine(appdataFolder, "platformio");
             Process process = new Process();
@@ -123,18 +122,18 @@ namespace GuitarConfiguratorSharp.Utils
             process.StartInfo.FileName = pioExecutable;
             process.StartInfo.WorkingDirectory = projectDir;
             process.StartInfo.EnvironmentVariables["PLATFORMIO_CORE_DIR"] = pioFolder;
-           
+
             process.StartInfo.Arguments = $"device list --json-output";
 
             process.StartInfo.UseShellExecute = false;
             process.StartInfo.RedirectStandardOutput = true;
             process.StartInfo.RedirectStandardError = true;
 
-            
+
             process.Start();
             string output = process.StandardOutput.ReadToEnd();
             await process.WaitForExitAsync();
-            
+
             return PlatformIOPort.FromJson(output);
 
         }
