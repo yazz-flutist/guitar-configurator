@@ -15,11 +15,11 @@ namespace Device.Net.LibUsb
     {
         public static IDeviceFactory CreateLibUsbDeviceFactory2(
             this FilterDeviceDefinition filterDeviceDefinition,
-            ILoggerFactory loggerFactory = null,
+            ILoggerFactory? loggerFactory = null,
             int? timeout = null,
             ushort? writeBufferSize = null,
             ushort? readBufferSize = null,
-            Func<ConnectedDeviceDefinition, CancellationToken, Task<bool>> supportsDevice = null
+            Func<ConnectedDeviceDefinition, CancellationToken, Task<bool>>? supportsDevice = null
             )
              => CreateLibUsbDeviceFactory2
                     (
@@ -33,11 +33,11 @@ namespace Device.Net.LibUsb
 
         public static IDeviceFactory CreateLibUsbDeviceFactory2(
             this IReadOnlyList<FilterDeviceDefinition> filterDeviceDefinitions,
-            ILoggerFactory loggerFactory = null,
+            ILoggerFactory? loggerFactory = null,
             int? timeout = null,
             ushort? writeBufferSize = null,
             ushort? readBufferSize = null,
-            Func<ConnectedDeviceDefinition, CancellationToken, Task<bool>> supportsDevice = null
+            Func<ConnectedDeviceDefinition, CancellationToken, Task<bool>>? supportsDevice = null
             )
              => new DeviceFactory(
                 loggerFactory,
