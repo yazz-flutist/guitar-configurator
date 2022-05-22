@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Text;
 using Avalonia;
+using ReactiveUI;
 using Avalonia.Platform;
 using System.IO.Compression;
 using GuitarConfiguratorSharp.Utils.Github;
