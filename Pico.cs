@@ -3,17 +3,22 @@ using Device.Net;
 using Usb.Net;
 using System;
 using GuitarConfiguratorSharp.Utils;
+using GuitarConfiguratorSharp.Configuration;
 
-public class Pico : ConfigurableDevice
+public class PicoDevice : ConfigurableDevice
 {
     private string path;
 
     public bool MigrationSupported => true;
 
-    public Pico(string path)
+    private DeviceConfiguration? _config;
+
+    public DeviceConfiguration? Configuration => _config;
+
+    public PicoDevice(PlatformIO pio, string path)
     {
         this.path = path;
-        ConfigurableDevice.FinishedInitialising(this);
+        this._config = new DeviceConfiguration(pio, new Pico());
     }
 
     public bool IsSameDevice(IDevice device)

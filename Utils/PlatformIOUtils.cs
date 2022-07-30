@@ -36,7 +36,7 @@ namespace GuitarConfiguratorSharp.Utils
         public event CommandCompleteHandler? CommandComplete;
 
         private string pioExecutable;
-        private string projectDir;
+        public string ProjectDir {get;}
         private List<string> environments;
 
         public bool ready { get; }
@@ -44,28 +44,28 @@ namespace GuitarConfiguratorSharp.Utils
         public PlatformIO()
         {
             environments = new List<string>();
-            string appdataFolder = GetAppDataFolder();
+            string appdataFolder = AssetUtils.GetAppDataFolder();
             string pioFolder = Path.Combine(appdataFolder, "platformio");
             string pioExecutablePath = Path.Combine(pioFolder, "penv", "bin", "platformio");
             this.pioExecutable = pioExecutablePath;
-            this.projectDir = Path.Combine(appdataFolder, "firmware");
-            ready = System.IO.Directory.Exists(this.projectDir) && System.IO.File.Exists(pioExecutablePath);
+            this.ProjectDir = Path.Combine(appdataFolder, "firmware");
+            ready = System.IO.Directory.Exists(this.ProjectDir) && System.IO.File.Exists(pioExecutablePath);
         }
 
         public async Task RevertFirmware() {
-            string appdataFolder = GetAppDataFolder();
-            if (System.IO.Directory.Exists(this.projectDir))
+            string appdataFolder = AssetUtils.GetAppDataFolder();
+            if (System.IO.Directory.Exists(this.ProjectDir))
             {
-                System.IO.Directory.Delete(this.projectDir, true);
+                System.IO.Directory.Delete(this.ProjectDir, true);
             }
             this.ProgressChanged?.Invoke("Extracting Firmware", 0, 0);
             string firmwareZipPath = Path.Combine(appdataFolder, "firmware.zip");
-            await AssetUtils.ExtractZip("firmware.zip",firmwareZipPath, projectDir);
+            await AssetUtils.ExtractZip("firmware.zip",firmwareZipPath, ProjectDir);
         }
 
         public async Task InitialisePlatformIO()
         {
-            string appdataFolder = GetAppDataFolder();
+            string appdataFolder = AssetUtils.GetAppDataFolder();
             string pioFolder = Path.Combine(appdataFolder, "platformio");
             string installerZipPath = Path.Combine(pioFolder, "installer.zip");
             string installerPath = Path.Combine(pioFolder, "installer");
@@ -76,7 +76,7 @@ namespace GuitarConfiguratorSharp.Utils
             await RevertFirmware();
             var parser = new FileIniDataParser();
             parser.Parser.Configuration.SkipInvalidLines = true;
-            IniData data = parser.ReadFile(Path.Combine(projectDir, "platformio.ini"));
+            IniData data = parser.ReadFile(Path.Combine(ProjectDir, "platformio.ini"));
             foreach (var key in data.Sections)
             {
                 if (key.SectionName.StartsWith("env:"))
@@ -123,12 +123,12 @@ namespace GuitarConfiguratorSharp.Utils
                 return new PlatformIOPort[] { };
             }
 
-            string appdataFolder = GetAppDataFolder();
+            string appdataFolder = AssetUtils.GetAppDataFolder();
             string pioFolder = Path.Combine(appdataFolder, "platformio");
             Process process = new Process();
             process.EnableRaisingEvents = true;
             process.StartInfo.FileName = pioExecutable;
-            process.StartInfo.WorkingDirectory = projectDir;
+            process.StartInfo.WorkingDirectory = ProjectDir;
             process.StartInfo.EnvironmentVariables["PLATFORMIO_CORE_DIR"] = pioFolder;
 
             process.StartInfo.Arguments = $"device list --json-output";
@@ -159,12 +159,12 @@ namespace GuitarConfiguratorSharp.Utils
             double percentageStep = (progress_ending_percentage - progress_starting_percentage) / environments.Count;
             double currentProgress = progress_starting_percentage;
             bool building = environment == null && command == "run";
-            string appdataFolder = GetAppDataFolder();
+            string appdataFolder = AssetUtils.GetAppDataFolder();
             string pioFolder = Path.Combine(appdataFolder, "platformio");
             Process process = new Process();
             process.EnableRaisingEvents = true;
             process.StartInfo.FileName = pioExecutable;
-            process.StartInfo.WorkingDirectory = projectDir;
+            process.StartInfo.WorkingDirectory = ProjectDir;
             process.StartInfo.EnvironmentVariables["PLATFORMIO_CORE_DIR"] = pioFolder;
             if (environment != null)
             {
@@ -212,15 +212,9 @@ namespace GuitarConfiguratorSharp.Utils
 
             return tcs.Task;
         }
-
-        private string GetAppDataFolder()
-        {
-            string folder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            return Path.Combine(folder, "SantrollerConfigurator");
-        }
         private async Task<string?> FindPython()
         {
-            string appdataFolder = GetAppDataFolder();
+            string appdataFolder = AssetUtils.GetAppDataFolder();
             string pythonFolder = Path.Combine(appdataFolder, "python");
             var pythonLoc = Path.Combine(pythonFolder, "python.tar.gz");
             var executables = GetPythonExecutables();
@@ -262,7 +256,7 @@ namespace GuitarConfiguratorSharp.Utils
                     {
                         using (var download = new HttpClientDownloadWithProgress(asset.BrowserDownloadUrl!.ToString(), pythonLoc))
                         {
-                            download.ProgressChanged += (totalFileSize, totalBytesDownloaded, percentage) => this.ProgressChanged?.Invoke("Downloading python portable", 1, 20 + (percentage * 0.4) ?? 0); ;
+                            download.ProgressChanged += (totalFileSize, totalBytesDownloaded, percentage) => this.ProgressChanged?.Invoke("Downloading python portable", 1, 20 + (percentage * 0.4) ?? 0);
                             await download.StartDownload().ConfigureAwait(false);
                         };
                         found = true;
