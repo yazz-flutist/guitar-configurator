@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Avalonia.Media;
+using Dahomey.Json.Attributes;
 
 namespace GuitarConfiguratorSharp.Configuration
 {
@@ -10,6 +11,7 @@ namespace GuitarConfiguratorSharp.Configuration
             {WiiController.ClassicController, "WII_CLASSIC_CONTROLLER"}
         };
     }
+    [JsonDiscriminator(nameof(WiiButton))]
     public class WiiButton : GroupableButton, WiiInput
     {
         public WiiButton(WiiButtonType button, WiiController controller, int debounce, OutputButton type, Color ledOn, Color ledOff) : base(InputControllerType.Wii, debounce, type, ledOn, ledOff)
@@ -86,9 +88,10 @@ namespace GuitarConfiguratorSharp.Configuration
             return mapping[button];
         }
     }
+    [JsonDiscriminator(nameof(WiiAnalog))]
     public class WiiAnalog : GroupableAxis, WiiInput
     {
-        public WiiAnalog(WiiAxis axis, WiiController controller, OutputAxis type, Color ledOn, Color ledOff, int multiplier, int offset, int deadzone, bool trigger) : base(InputControllerType.Wii, type, ledOn, ledOff, multiplier, offset, deadzone, trigger)
+        public WiiAnalog(WiiAxis axis, WiiController controller, OutputAxis type, Color ledOn, Color ledOff, float multiplier, int offset, int deadzone, bool trigger) : base(InputControllerType.Wii, type, ledOn, ledOff, multiplier, offset, deadzone, trigger)
         {
             this.axis = axis;
             this.wiiController = controller;

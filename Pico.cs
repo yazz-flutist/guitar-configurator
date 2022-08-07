@@ -18,7 +18,7 @@ public class PicoDevice : ConfigurableDevice
     public PicoDevice(PlatformIO pio, string path)
     {
         this.path = path;
-        this._config = new DeviceConfiguration(pio, new Pico());
+        this._config = new DeviceConfiguration(new Pico(), 0, "pico");
     }
 
     public bool IsSameDevice(IDevice device)

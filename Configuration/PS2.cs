@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Avalonia.Media;
+using Dahomey.Json.Attributes;
 
 namespace GuitarConfiguratorSharp.Configuration
 {
@@ -13,6 +14,7 @@ namespace GuitarConfiguratorSharp.Configuration
         };
     }
 
+    [JsonDiscriminator(nameof(PS2Button))]
     public class PS2Button : GroupableButton, PS2Input
     {
         public PS2Button(PS2ButtonType button, PS2Controller controller, int debounce, OutputButton type, Color ledOn, Color ledOff) : base(InputControllerType.PS2, debounce, type, ledOn, ledOff)
@@ -56,9 +58,10 @@ namespace GuitarConfiguratorSharp.Configuration
     }
 
 
+    [JsonDiscriminator(nameof(PS2Analog))]
     public class PS2Analog : GroupableAxis, PS2Input
     {
-        public PS2Analog(PS2Axis axis, PS2Controller controller, OutputAxis type, Color ledOn, Color ledOff, int multiplier, int offset, int deadzone, bool trigger) : base(InputControllerType.PS2, type, ledOn, ledOff, multiplier, offset, deadzone, trigger)
+        public PS2Analog(PS2Axis axis, PS2Controller controller, OutputAxis type, Color ledOn, Color ledOff, float multiplier, int offset, int deadzone, bool trigger) : base(InputControllerType.PS2, type, ledOn, ledOff, multiplier, offset, deadzone, trigger)
         {
             this.axis = axis;
             this.ps2Controller = controller;

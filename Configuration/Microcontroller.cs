@@ -9,19 +9,19 @@ namespace GuitarConfiguratorSharp.Configuration
     public abstract class Microcontroller
     {
         public abstract string generateDigitalRead(int pin, bool pull_up);
-        public abstract string generateAnalogRead(int pin, int index, int offset, int multiplier, int deadzone);
-        public abstract string generateAnalogTriggerRead(int pin, int index, int offset, int multiplier, int deadzone);
+        public abstract string generateAnalogRead(int pin, int index, int offset, float multiplier, int deadzone);
+        public abstract string generateAnalogTriggerRead(int pin, int index, int offset, float multiplier, int deadzone);
         public abstract string generateSkip(bool SPIEnabled, bool I2CEnabled);
 
         public abstract int getChannel(int pin);
 
         public abstract string generateInit(IEnumerable<Binding> bindings);
-        public abstract int SPI_RX {get;}
-        public abstract int SPI_TX {get;}
-        public abstract int SPI_SCK {get;}
-        public abstract int SPI_CSn {get;}
-        public abstract int I2C_SDA {get;}
-        public abstract int I2C_SCL {get;}
+        public abstract int SPI_RX { get; }
+        public abstract int SPI_TX { get; }
+        public abstract int SPI_SCK { get; }
+        public abstract int SPI_CSn { get; }
+        public abstract int I2C_SDA { get; }
+        public abstract int I2C_SCL { get; }
     }
 
     public class Pico : Microcontroller
@@ -29,12 +29,12 @@ namespace GuitarConfiguratorSharp.Configuration
         private const int GPIO_COUNT = 30;
         private const int PIN_A0 = 26;
 
-        public int SPI_RX_Pico {get;set;} = 0xff;
-        public int SPI_TX_Pico {get;set;} = 0xff;
-        public int SPI_CSN_Pico {get;set;} = 0xff;
-        public int SPI_SCK_Pico {get;set;} = 0xff;
-        public int I2C_SDA_Pico {get;set;} = 0xff;
-        public int I2C_SCL_Pico {get;set;} = 0xff;
+        public int SPI_RX_Pico { get; set; } = 0xff;
+        public int SPI_TX_Pico { get; set; } = 0xff;
+        public int SPI_CSN_Pico { get; set; } = 0xff;
+        public int SPI_SCK_Pico { get; set; } = 0xff;
+        public int I2C_SDA_Pico { get; set; } = 0xff;
+        public int I2C_SCL_Pico { get; set; } = 0xff;
 
         public override int SPI_RX => SPI_RX_Pico;
 
@@ -58,32 +58,36 @@ namespace GuitarConfiguratorSharp.Configuration
             return $"sio_hw->gpio_in & (1 << {pin})";
         }
 
-        public override string generateAnalogRead(int pin, int index, int offset, int multiplier, int deadzone)
+        public override string generateAnalogRead(int pin, int index, int offset, float multiplier, int deadzone)
         {
             return $"adc({pin - PIN_A0}, {offset}, {multiplier}, {deadzone})";
         }
 
-        public override string generateAnalogTriggerRead(int pin, int index, int offset, int multiplier, int deadzone)
+        public override string generateAnalogTriggerRead(int pin, int index, int offset, float multiplier, int deadzone)
         {
             return $"adc_trigger({pin - PIN_A0}, {offset}, {multiplier}, {deadzone})";
         }
 
         public override string generateSkip(bool SPIEnabled, bool I2CEnabled)
-        {   
+        {
             List<int> skippedPins = new List<int>();
-            if (SPIEnabled) {
+            if (SPIEnabled)
+            {
                 skippedPins.Add(SPI_CSn);
                 skippedPins.Add(SPI_RX);
                 skippedPins.Add(SPI_TX);
                 skippedPins.Add(SPI_SCK);
             }
-            if (I2CEnabled) {
+            if (I2CEnabled)
+            {
                 skippedPins.Add(I2C_SCL);
                 skippedPins.Add(I2C_SDA);
             }
             int skip = 0;
-            foreach (var pin in skippedPins) {
-                if (pin != 0xFF) {
+            foreach (var pin in skippedPins)
+            {
+                if (pin != 0xFF)
+                {
                     skip |= 1 << pin;
                 }
             }
@@ -95,14 +99,16 @@ namespace GuitarConfiguratorSharp.Configuration
             IEnumerable<DirectDigital> buttons = bindings.FilterCast<Binding, DirectDigital>();
             IEnumerable<DirectAnalog> axes = bindings.FilterCast<Binding, DirectAnalog>();
             string ret = "";
-            foreach (var button in buttons) {
+            foreach (var button in buttons)
+            {
                 bool up = button.PinMode == DevicePinMode.BusKeep || button.PinMode == DevicePinMode.Ground;
                 bool down = button.PinMode == DevicePinMode.BusKeep || button.PinMode == DevicePinMode.VCC;
                 ret += $"gpio_init({button.Pin});";
                 ret += $"gpio_set_dir({button.Pin},false);";
                 ret += $"gpio_set_pulls({button.Pin},{up.ToString().ToLower()},{down.ToString().ToLower()}, false);";
             }
-            foreach (var axis in axes) {
+            foreach (var axis in axes)
+            {
                 ret += $"adc_gpio_init({axis.Pin});";
             }
             return ret;
@@ -132,12 +138,12 @@ namespace GuitarConfiguratorSharp.Configuration
             return $"PIN{getPort(pin)} & (1 << {getIndex(pin)})";
         }
 
-        public override string generateAnalogRead(int pin, int index, int offset, int multiplier, int deadzone)
+        public override string generateAnalogRead(int pin, int index, int offset, float multiplier, int deadzone)
         {
             return $"adc({index}, {offset}, {multiplier}, {deadzone})";
         }
 
-        public override string generateAnalogTriggerRead(int pin, int index, int offset, int multiplier, int deadzone)
+        public override string generateAnalogTriggerRead(int pin, int index, int offset, float multiplier, int deadzone)
         {
             return $"adc_trigger({index}, {offset}, {multiplier}, {deadzone})";
         }
@@ -147,33 +153,38 @@ namespace GuitarConfiguratorSharp.Configuration
 
         public abstract AVRPinMode? forcedMode(int pin);
 
-        public abstract int PinCount {get;}
+        public abstract int PinCount { get; }
 
         public override string generateSkip(bool SPIEnabled, bool I2CEnabled)
-        {   
+        {
             List<int> skippedPins = new List<int>();
-            if (SPIEnabled) {
+            if (SPIEnabled)
+            {
                 skippedPins.Add(SPI_CSn);
                 skippedPins.Add(SPI_RX);
                 skippedPins.Add(SPI_TX);
                 skippedPins.Add(SPI_SCK);
             }
-            if (I2CEnabled) {
+            if (I2CEnabled)
+            {
                 skippedPins.Add(I2C_SCL);
                 skippedPins.Add(I2C_SDA);
             }
             Dictionary<char, int> skippedByPort = new Dictionary<char, int>();
-            for (var i = 0; i < PinCount; i++) {
-                if (forcedMode(i) is not null) {
+            for (var i = 0; i < PinCount; i++)
+            {
+                if (forcedMode(i) is not null)
+                {
                     skippedPins.Add(i);
                 }
                 skippedByPort[getPort(i)] = 0;
             }
 
-            foreach (var pin in skippedPins) {
+            foreach (var pin in skippedPins)
+            {
                 skippedByPort[getPort(pin)] |= 1 << getIndex(pin);
             }
-            return "{"+string.Join(", ",skippedByPort.Keys.OrderBy(x => x).Select(x => skippedByPort[x].ToString()))+"}";
+            return "{" + string.Join(", ", skippedByPort.Keys.OrderBy(x => x).Select(x => skippedByPort[x].ToString())) + "}";
         }
 
         public override string generateInit(IEnumerable<Binding> bindings)
@@ -183,24 +194,56 @@ namespace GuitarConfiguratorSharp.Configuration
             // DDRx 1 = output, 0 = input
             // PORTx input 1= pullup, 0 = floating
             // TODO: outputs (Start power led?)
-            // Dictionary<char, int> ddrByPort = new Dictionary<char, int>();
+            Dictionary<char, int> ddrByPort = new Dictionary<char, int>();
             Dictionary<char, int> portByPort = new Dictionary<char, int>();
-            foreach (var button in buttons) {
+            foreach (var button in buttons)
+            {
                 var port = getPort(button.Pin);
                 var idx = getIndex(button.Pin);
                 var currentPort = portByPort.GetValueOrDefault(port, 0);
-                // var currentDDR = ddrByPort.GetValueOrDefault(port, 0);
-                if (button.PinMode == DevicePinMode.VCC) {
-                    currentPort |= 1 << idx;
+                var currentDDR = ddrByPort.GetValueOrDefault(port, 0);
+                if (button.PinMode == DevicePinMode.VCC)
+                {
+                    currentPort += 1 << idx;
                 }
-                if (currentPort != 0) {
+                if (currentPort != 0)
+                {
                     portByPort[port] = currentPort;
                 }
+                ddrByPort[port] = currentDDR;
             }
-            string ret = "";
-            foreach (var port in portByPort) {
+            for (var i = 0; i < PinCount; i++)
+            {
+                var force = forcedMode(i);
+                var port = getPort(i);
+                var idx = getIndex(i);
+                if (forcedMode(i) is not null)
+                {
+                    var currentPort = portByPort.GetValueOrDefault(port, 0);
+                    var currentDDR = ddrByPort.GetValueOrDefault(port, 0);
+                    switch (force)
+                    {
+                        case AVRPinMode.INPUT_PULLDOWN:
+                            currentPort |= 1 << idx;
+                            break;
+                        case AVRPinMode.OUTPUT:
+                            currentDDR |= 1 << idx;
+                            break;
+                    }
+                    portByPort[port] = currentPort;
+                    ddrByPort[port] = currentDDR;
+                }
+            }
+            string ret = "uint8_t oldSREG = SREG;cli();";
+            foreach (var port in portByPort)
+            {
                 ret += $"PORT{port.Key} = {port.Value};";
             }
+            foreach (var port in ddrByPort)
+            {
+                ret += $"DDR{port.Key} = {port.Value};";
+            }
+            ret += "SREG = oldSREG;";
             return ret;
         }
     }
@@ -365,7 +408,7 @@ namespace GuitarConfiguratorSharp.Configuration
             'K'    , // 'K' 7 ** 69 ** A15            
         };
 
-        private static readonly char[] port_names = {'A','B','C','D','E','F','G','H','J','L'};
+        private static readonly char[] port_names = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'L' };
 
         private const int PIN_A0 = 54;
 
@@ -386,10 +429,11 @@ namespace GuitarConfiguratorSharp.Configuration
 
         public override AVRPinMode? forcedMode(int pin)
         {
-            switch (pin) {
+            switch (pin)
+            {
                 case 0:
                     return AVRPinMode.INPUT;
-                case 1: 
+                case 1:
                     return AVRPinMode.OUTPUT;
                 case 13:
                     return AVRPinMode.INPUT;
@@ -427,7 +471,7 @@ namespace GuitarConfiguratorSharp.Configuration
             'B', 'B', 'B', 'B', 'B', 'C',         /* 14 */
             'C', 'C', 'C', 'C', 'C'
         };
-        private static readonly char[] port_names = {'B','C','D'};
+        private static readonly char[] port_names = { 'B', 'C', 'D' };
 
         private const int PIN_A0 = 14;
 
@@ -450,10 +494,11 @@ namespace GuitarConfiguratorSharp.Configuration
 
         public override AVRPinMode? forcedMode(int pin)
         {
-            switch (pin) {
+            switch (pin)
+            {
                 case 0:
                     return AVRPinMode.INPUT;
-                case 1: 
+                case 1:
                     return AVRPinMode.OUTPUT;
                 case 13:
                     return AVRPinMode.INPUT;
@@ -552,7 +597,7 @@ namespace GuitarConfiguratorSharp.Configuration
             'D', // D29 / D12 - A11 - 'D'6
             'D' // D30 / TX Led - 'D'5            
         };
-        private static readonly char[] port_names = {'B','C','D','E','F'};
+        private static readonly char[] port_names = { 'B', 'C', 'D', 'E', 'F' };
 
         private static readonly int[] channels = {
             7,	// A0				PF7					ADC7

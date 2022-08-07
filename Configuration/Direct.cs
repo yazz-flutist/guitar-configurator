@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Avalonia.Media;
+using Dahomey.Json.Attributes;
 using GuitarConfiguratorSharp.Utils;
 
 namespace GuitarConfiguratorSharp.Configuration
 {
 
+    [JsonDiscriminator(nameof(DirectDigital))]
     public class DirectDigital : Button
     {
         public DirectDigital(DevicePinMode pinmode, int Pin, int debounce, OutputButton type, Color ledOn, Color ledOff) : base(InputControllerType.Direct, debounce, type, ledOn, ledOff)
@@ -23,10 +25,11 @@ namespace GuitarConfiguratorSharp.Configuration
             return controller.generateDigitalRead(Pin, PinMode == DevicePinMode.VCC);
         }
     }
+    [JsonDiscriminator(nameof(DirectAnalog))]
     public class DirectAnalog : Axis
     {
         // TODO: can we set trigger based on outputaxis now?
-        public DirectAnalog(int Pin, OutputAxis type, Color ledOn, Color ledOff, int multiplier, int offset, int deadzone, bool trigger) : base(InputControllerType.Direct,type, ledOn, ledOff, multiplier, offset, deadzone, trigger)
+        public DirectAnalog(int Pin, OutputAxis type, Color ledOn, Color ledOff, float multiplier, int offset, int deadzone, bool trigger) : base(InputControllerType.Direct,type, ledOn, ledOff, multiplier, offset, deadzone, trigger)
         {
             this.Pin = Pin;
         }

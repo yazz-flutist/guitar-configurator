@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Avalonia.Media;
+using Dahomey.Json.Attributes;
 using GuitarConfiguratorSharp.Utils;
 
 namespace GuitarConfiguratorSharp.Configuration
@@ -15,6 +16,7 @@ namespace GuitarConfiguratorSharp.Configuration
         Blue = 8,
         Orange = 16
     }
+    [JsonDiscriminator(nameof(DirectGHFiveTarBarButton))]
     public class DirectGHFiveTarBarButton : Button
     {
         public DirectGHFiveTarBarButton(GHFiveTarButton Button, int debounce, OutputButton type, Color ledOn, Color ledOff) : base(InputControllerType.Direct, debounce, type, ledOn, ledOff)
@@ -98,9 +100,10 @@ namespace GuitarConfiguratorSharp.Configuration
         }
     }
 
+    [JsonDiscriminator(nameof(DirectGHFiveTarBarAnalog))]
     public class DirectGHFiveTarBarAnalog : Axis
     {
-        public DirectGHFiveTarBarAnalog(OutputAxis type, Color ledOn, Color ledOff, int multiplier, int offset, int deadzone, bool trigger) : base(InputControllerType.Direct, type, ledOn, ledOff, multiplier, offset, deadzone, trigger)
+        public DirectGHFiveTarBarAnalog(OutputAxis type, Color ledOn, Color ledOff, float multiplier, int offset, int deadzone, bool trigger) : base(InputControllerType.Direct, type, ledOn, ledOff, multiplier, offset, deadzone, trigger)
         {
         }
 
@@ -114,6 +117,7 @@ namespace GuitarConfiguratorSharp.Configuration
                     twi_readFromPointer(GH5NECK_ADDR, GH5NECK_BUTTONS_PTR, 2, fivetar_buttons);";
         }
     }
+    [JsonDiscriminator(nameof(DirectGHWTBarButton))]
     public class DirectGHWTBarButton : Button
     {
         public DirectGHWTBarButton(GHWTTarButton Button, int debounce, OutputButton type, Color ledOn, Color ledOff) : base(InputControllerType.Direct, debounce, type, ledOn, ledOff)
@@ -154,10 +158,11 @@ namespace GuitarConfiguratorSharp.Configuration
             return "uint8_t wttapbindings = {" + String.Join(" ", mappings.Keys.Select(key => $"[{key}] = {(int)mappings[key]},")) + "};";
         }
     }
+    [JsonDiscriminator(nameof(DirectGHWTBarAnalog))]
 
     public class DirectGHWTBarAnalog : Axis
     {
-        public DirectGHWTBarAnalog(OutputAxis type, Color ledOn, Color ledOff, int multiplier, int offset, int deadzone, bool trigger) : base(InputControllerType.Direct, type, ledOn, ledOff, multiplier, offset, deadzone, trigger)
+        public DirectGHWTBarAnalog(OutputAxis type, Color ledOn, Color ledOff, float multiplier, int offset, int deadzone, bool trigger) : base(InputControllerType.Direct, type, ledOn, ledOff, multiplier, offset, deadzone, trigger)
         {
         }
 

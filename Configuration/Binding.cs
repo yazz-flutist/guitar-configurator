@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Avalonia.Media;
 using Avalonia.Input;
+using System.Text.Json.Serialization;
+using Dahomey.Json.Attributes;
 
 namespace GuitarConfiguratorSharp.Configuration
 {
@@ -16,7 +18,7 @@ namespace GuitarConfiguratorSharp.Configuration
 
     public abstract class GroupableAxis : Axis
     {
-        protected GroupableAxis(InputControllerType inputType, OutputAxis type, Color ledOn, Color ledOff, int multiplier, int offset, int deadzone, bool trigger) : base(inputType, type, ledOn, ledOff, multiplier, offset, deadzone, trigger)
+        protected GroupableAxis(InputControllerType inputType, OutputAxis type, Color ledOn, Color ledOff, float multiplier, int offset, int deadzone, bool trigger) : base(inputType, type, ledOn, ledOff, multiplier, offset, deadzone, trigger)
         {
         }
 
@@ -33,6 +35,7 @@ namespace GuitarConfiguratorSharp.Configuration
     }
 
 
+    [JsonDiscriminator(nameof(AnalogToDigital))]
     public class AnalogToDigital : Button, WiiInput, PS2Input
     {
         public AnalogToDigital(int threshold, Axis analog, AnalogToDigitalType analogToDigitalType, int debounce, OutputButton type, Color ledOn, Color ledOff) : base(analog.InputType, debounce, type, ledOn, ledOff)
@@ -45,8 +48,9 @@ namespace GuitarConfiguratorSharp.Configuration
         public Axis Analog { get; set; }
 
         public int Threshold { get; }
-
+        [JsonIgnore]
         public PS2Controller ps2Controller => Analog is PS2Analog ? (Analog as PS2Analog)!.ps2Controller : throw new InvalidOperationException();
+        [JsonIgnore]
         public WiiController wiiController => Analog is WiiAnalog ? (Analog as WiiAnalog)!.wiiController : throw new InvalidOperationException();
 
         public override string generate(Microcontroller controller, IEnumerable<Binding> bindings)
@@ -62,9 +66,10 @@ namespace GuitarConfiguratorSharp.Configuration
             return "";
         }
     }
+    [JsonDiscriminator(nameof(DigitalToAnalog))]
     public class DigitalToAnalog : Axis, WiiInput, PS2Input
     {
-        public DigitalToAnalog(int value, Button button, AnalogToDigitalType analogToDigitalType, OutputAxis type, Color ledOn, Color ledOff, int multiplier, int offset, int deadzone, bool trigger) : base(button.InputType, type, ledOn, ledOff, multiplier, offset, deadzone, trigger)
+        public DigitalToAnalog(int value, Button button, AnalogToDigitalType analogToDigitalType, OutputAxis type, Color ledOn, Color ledOff, float multiplier, int offset, int deadzone, bool trigger) : base(button.InputType, type, ledOn, ledOff, multiplier, offset, deadzone, trigger)
         {
             this.Button = button;
             this.AnalogToDigitalType = analogToDigitalType;
@@ -74,7 +79,9 @@ namespace GuitarConfiguratorSharp.Configuration
 
         public Button Button { get; set; }
         public int Value { get; set; }
+        [JsonIgnore]
         public PS2Controller ps2Controller => Button is PS2Button ? (Button as PS2Button)!.ps2Controller : throw new InvalidOperationException();
+        [JsonIgnore]
         public WiiController wiiController => Button is WiiButton ? (Button as WiiButton)!.wiiController : throw new InvalidOperationException();
         public override string generate(Microcontroller controller, IEnumerable<Binding> bindings)
         {
@@ -94,7 +101,7 @@ namespace GuitarConfiguratorSharp.Configuration
 
     public abstract class Axis : Binding
     {
-        protected Axis(InputControllerType inputType, OutputAxis type, Color ledOn, Color ledOff, int multiplier, int offset, int deadzone, bool trigger) : base(inputType, ledOn, ledOff)
+        protected Axis(InputControllerType inputType, OutputAxis type, Color ledOn, Color ledOff, float multiplier, int offset, int deadzone, bool trigger) : base(inputType, ledOn, ledOff)
         {
             Multiplier = multiplier;
             Offset = offset;
@@ -104,7 +111,7 @@ namespace GuitarConfiguratorSharp.Configuration
         }
 
         public OutputAxis Type { get; }
-        public int Multiplier { get; }
+        public float Multiplier { get; }
         public int Offset { get; }
         public int Deadzone { get; }
 
@@ -134,6 +141,7 @@ namespace GuitarConfiguratorSharp.Configuration
 
     public interface OutputAxis
     {
+        public StandardAxisType Type { get; }
         public abstract string generate();
         public OutputType OutputType { get; }
     }
@@ -142,6 +150,7 @@ namespace GuitarConfiguratorSharp.Configuration
         public abstract int index();
         public OutputType OutputType { get; }
     }
+    [JsonDiscriminator(nameof(XboxControllerButton))]
     public class XboxControllerButton : OutputButton
     {
         public static List<StandardButtonType> order = new List<StandardButtonType>(){
@@ -171,6 +180,7 @@ namespace GuitarConfiguratorSharp.Configuration
             return order.IndexOf(Type);
         }
     }
+    [JsonDiscriminator(nameof(GenericControllerButton))]
     public class GenericControllerButton : OutputButton
     {
         public static List<StandardButtonType> order = new List<StandardButtonType>(){
@@ -202,6 +212,7 @@ namespace GuitarConfiguratorSharp.Configuration
         }
     }
 
+    [JsonDiscriminator(nameof(GenericControllerHat))]
     public class GenericControllerHat : OutputButton
     {
         public static List<StandardButtonType> order = new List<StandardButtonType>(){
@@ -217,16 +228,15 @@ namespace GuitarConfiguratorSharp.Configuration
         {
             return order.IndexOf(Type);
         }
-        public static string tick()
+
+        public GenericControllerHat(StandardButtonType type)
         {
-            return @"report->hat = button > 0x0a ? 0x08 : hat_bindings[button];";
-        }
-        public static string initHat()
-        {
-            return @"static const uint8_t hat_bindings[] = {0x08, 0x00, 0x04, 0x08, 0x06, 0x07, 0x05, 0x08, 0x02, 0x01, 0x03};";
+            Type = type;
         }
     }
 
+
+    [JsonDiscriminator(nameof(GenericAxis))]
     public class GenericAxis : OutputAxis
     {
         public StandardAxisType Type { get; }
@@ -255,6 +265,7 @@ namespace GuitarConfiguratorSharp.Configuration
         }
     }
 
+    [JsonDiscriminator(nameof(XboxAxis))]
     public class XboxAxis : OutputAxis
     {
         public StandardAxisType Type { get; }
@@ -274,15 +285,16 @@ namespace GuitarConfiguratorSharp.Configuration
             return "report->" + mappings[Type];
         }
     }
+    [JsonDiscriminator(nameof(MouseAxis))]
     public class MouseAxis : OutputAxis
     {
-        public MouseAxisType Type { get; }
+        public StandardAxisType Type { get; }
 
-        public static Dictionary<MouseAxisType, string> mappings = new Dictionary<MouseAxisType, string>() {
-            {MouseAxisType.X, "X"},
-            {MouseAxisType.Y, "Y"},
-            {MouseAxisType.ScrollX, "ScrollX"},
-            {MouseAxisType.ScrollY, "ScrollY"},
+        public static Dictionary<StandardAxisType, string> mappings = new Dictionary<StandardAxisType, string>() {
+            {StandardAxisType.MouseX, "X"},
+            {StandardAxisType.MouseY, "Y"},
+            {StandardAxisType.ScrollX, "ScrollX"},
+            {StandardAxisType.ScrollY, "ScrollY"},
         };
         public OutputType OutputType => OutputType.Keyboard;
 
@@ -306,29 +318,29 @@ namespace GuitarConfiguratorSharp.Configuration
             throw new NotImplementedException();
         }
     }
-    public class MIDINote : OutputAxis
-    {
-        public int note { get; }
-        public OutputType OutputType => OutputType.Midi;
+    // public class MIDINote : OutputAxis
+    // {
+    //     public int note { get; }
+    //     public OutputType OutputType => OutputType.Midi;
 
-        public string generate()
-        {
-            // TODO: this
-            throw new NotImplementedException();
-        }
-    }
-    public class MIDICommand : OutputAxis
-    {
-        public int command { get; }
-        public OutputType OutputType => OutputType.Midi;
+    //     public string generate()
+    //     {
+    //         // TODO: this
+    //         throw new NotImplementedException();
+    //     }
+    // }
+    // public class MIDICommand : OutputAxis
+    // {
+    //     public int command { get; }
+    //     public OutputType OutputType => OutputType.Midi;
 
-        public string generate()
-        {
-            // TODO: this
-            throw new NotImplementedException();
-        }
+    //     public string generate()
+    //     {
+    //         // TODO: this
+    //         throw new NotImplementedException();
+    //     }
 
-    }
+    // }
     public abstract class Binding
     {
 

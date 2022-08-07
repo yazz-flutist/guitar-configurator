@@ -5,6 +5,12 @@ using System.IO;
 using System.Linq;
 using Avalonia.Media;
 using GuitarConfiguratorSharp.Utils;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.IO.Compression;
+using System.Text;
+using Dahomey.Json;
+using Dahomey.Json.Serialization.Conventions;
 
 namespace GuitarConfiguratorSharp.Configuration
 {
@@ -64,15 +70,32 @@ namespace GuitarConfiguratorSharp.Configuration
         public DeviceType DeviceType { get; set; }
         public EmulationType EmulationType { get; set; }
         public RhythmType RhythmType { get; set; }
+
+        [JsonIgnore]
         public Microcontroller MicroController { get; set; }
+
+        public string Board { get; }
+
+        public uint CpuFreq { get; }
         public TiltOrientation TiltOrientation { get; set; }
 
-        private PlatformIO pio;
 
+        public List<Binding> Bindings { get; }
 
-        public IEnumerable<Binding> Bindings { get; }
-
-        public DeviceConfiguration(PlatformIO pio, Microcontroller microcontroller, IEnumerable<Binding> bindings, LedType ledType, DeviceType deviceType, EmulationType emulationType, RhythmType rhythmType, bool tiltEnabled)
+        [JsonConstructorAttribute]
+        public DeviceConfiguration(uint cpuFreq, String board, List<Binding> bindings, LedType ledType, DeviceType deviceType, EmulationType emulationType, RhythmType rhythmType, bool tiltEnabled)
+        {
+            this.Bindings = bindings;
+            this.MicroController = GuitarConfiguratorSharp.Configuration.Board.findMicrocontroller(GuitarConfiguratorSharp.Configuration.Board.findBoard(board, cpuFreq));
+            this.LedType = ledType;
+            this.DeviceType = deviceType;
+            this.EmulationType = emulationType;
+            this.RhythmType = rhythmType;
+            this.TiltEnabled = tiltEnabled;
+            this.CpuFreq = cpuFreq;
+            this.Board = board;
+        }
+        public DeviceConfiguration(Microcontroller microcontroller, uint cpuFreq, String board, List<Binding> bindings, LedType ledType, DeviceType deviceType, EmulationType emulationType, RhythmType rhythmType, bool tiltEnabled)
         {
             this.Bindings = bindings;
             this.MicroController = microcontroller;
@@ -81,10 +104,11 @@ namespace GuitarConfiguratorSharp.Configuration
             this.EmulationType = emulationType;
             this.RhythmType = rhythmType;
             this.TiltEnabled = tiltEnabled;
-            this.pio = pio;
+            this.CpuFreq = cpuFreq;
+            this.Board = board;
         }
 
-        public DeviceConfiguration(PlatformIO pio, Microcontroller microcontroller)
+        public DeviceConfiguration(Microcontroller microcontroller, uint cpuFreq, String board)
         {
             MicroController = microcontroller;
             this.Bindings = new List<Binding>();
@@ -93,10 +117,37 @@ namespace GuitarConfiguratorSharp.Configuration
             this.EmulationType = EmulationType.Universal;
             this.RhythmType = RhythmType.GuitarHero;
             this.TiltEnabled = false;
-            this.pio = pio;
+            this.CpuFreq = cpuFreq;
+            this.Board = board;
         }
 
-        public void generate()
+        public static JsonSerializerOptions generateOptions() {
+            
+            JsonSerializerOptions options = new JsonSerializerOptions();
+            options.SetupExtensions();
+            DiscriminatorConventionRegistry registry = options.GetDiscriminatorConventionRegistry();
+            registry.RegisterType<DirectGHFiveTarBarAnalog>();
+            registry.RegisterType<DirectGHFiveTarBarButton>();
+            registry.RegisterType<DirectGHWTBarAnalog>();
+            registry.RegisterType<DirectGHWTBarButton>();
+            registry.RegisterType<AnalogToDigital>();
+            registry.RegisterType<DigitalToAnalog>();
+            registry.RegisterType<XboxControllerButton>();
+            registry.RegisterType<GenericControllerButton>();
+            registry.RegisterType<GenericControllerHat>();
+            registry.RegisterType<GenericAxis>();
+            registry.RegisterType<XboxAxis>();
+            registry.RegisterType<MouseAxis>();
+            registry.RegisterType<DirectDigital>();
+            registry.RegisterType<DirectAnalog>();
+            registry.RegisterType<PS2Button>();
+            registry.RegisterType<PS2Analog>();
+            registry.RegisterType<WiiButton>();
+            registry.RegisterType<WiiAnalog>();
+            return options;
+        }
+
+        public void generate(PlatformIO pio)
         {
             var hasWii = Bindings.FilterCast<Binding, WiiInput>().Any();
             var hasPS2 = Bindings.FilterCast<Binding, PS2Input>().Any();
@@ -104,6 +155,19 @@ namespace GuitarConfiguratorSharp.Configuration
             var hasI2C = hasWii;
             string configFile = Path.Combine(pio.ProjectDir, "lib", "config", "src", "config.h");
             var lines = File.ReadAllLines(configFile);
+            var json = JsonSerializer.Serialize(this, generateOptions());
+            var bytes = Encoding.UTF8.GetBytes(json);
+            var bytesLine = "";
+            var bytesLenLine = "";
+            using (var outputStream = new MemoryStream())
+            {
+                using (var compressStream = new BrotliStream(outputStream, CompressionLevel.SmallestSize))
+                {
+                    compressStream.Write(bytes, 0, bytes.Length);
+                }
+                bytesLine = $"#define CONFIGURATION {{{string.Join(",", outputStream.ToArray().Select(b => b.ToString()))}}}";
+                bytesLenLine = $"#define CONFIGURATION_LEN {outputStream.ToArray().Length}";
+            }
             for (var i = 0; i < lines.Length; i++)
             {
                 var line = lines[i];
@@ -158,6 +222,14 @@ namespace GuitarConfiguratorSharp.Configuration
                     {
                         lines[i] = $"#define SKIP_MASK_AVR {MicroController.generateSkip(hasSPI, hasI2C)}";
                     }
+                }
+                if (line.StartsWith("#define CONFIGURATION_LEN"))
+                {
+                    lines[i] = bytesLenLine;
+                }
+                else if (line.StartsWith("#define CONFIGURATION"))
+                {
+                    lines[i] = bytesLine;
                 }
             }
             // TODO: generate a init define too
@@ -236,51 +308,24 @@ namespace GuitarConfiguratorSharp.Configuration
                     {
                         var output = buttonsByType.Key;
                         var buttonList = buttonsByType.OrderByDescending(button => button.Type.index()).ToList();
-                        var indexList = buttonList.Select(button => button.Type.index());
-                        var max = Math.Pow(2, Math.Ceiling(Math.Log2(indexList.First())));
-                        var enumerator = buttonList.GetEnumerator();
-                        int skipped = 0;
-                        int current = 0;
-                        string ret = "uint8_t temp;";
-                        for (int i = 0; i <= max; i++)
+                        string ret = "";
+                        int i = 0;
+                        // TODO: if debounce is combined, then both strums use the same i for checking (but the first strum does not decrement, only the second.)
+                        foreach (var button in buttonList)
                         {
-                            if (i != 0 && i % 8 == 0)
+                            int debounce = button.Debounce;
+                            var generated = button.generate(controller, Bindings);
+                            var outputBit = button.Type.index();
+                            var outputVar = button.Type is GenericControllerHat ? "report->hat" : "report->buttons";
+                            if (debounce == 0)
                             {
-                                ret += $"report->buttons[{Math.Floor((i / 8.0) - 1)}] = temp;";
-                                if (i < max - 7)
-                                {
-                                    ret += "temp = 0;";
-                                }
-                                skipped = 0;
-                            }
-                            if (indexList.Contains(i))
-                            {
-                                if (i % 8 != 0)
-                                {
-                                    ret += $"temp <<= {skipped};";
-                                }
-                                enumerator.MoveNext();
-                                int debounce = enumerator.Current.Debounce;
-                                if (debounce == 0)
-                                {
-                                    ret += $"temp |= ({enumerator.Current.generate(controller, buttonList.FilterCast<Button, Binding>())});";
-                                }
-                                else
-                                {
-                                    ret += $"if (({enumerator.Current.generate(controller, buttonList.FilterCast<Button, Binding>())})) {{debounce[{i}] = {debounce};temp |= 1;}} else if (debounce[{i}]) {{ debounce[{i}]--; temp |= 1;}}";
-                                }
-                                skipped = 1;
-                                current++;
+                                ret += $"{outputVar} |= ({generated} << {outputBit});";
                             }
                             else
                             {
-                                skipped++;
+                                ret += $"if (({generated})) {{debounce[{i}] = {debounce};{outputVar} |= (1 << {outputBit});}} else if (debounce[{i}]) {{ debounce[{i}]--; {outputVar} |= (1 << {outputBit});}}";
+                                i++;
                             }
-
-                        }
-                        if (max < 8)
-                        {
-                            ret += $"report->buttons[{Math.Floor((max / 8.0))}] = temp;";
                         }
                         return ret;
                     }

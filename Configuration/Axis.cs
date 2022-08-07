@@ -12,6 +12,10 @@ namespace GuitarConfiguratorSharp.Configuration
         AccelerationX,
         AccelerationY,
         AccelerationZ,
+        MouseX,
+        MouseY,
+        ScrollX,
+        ScrollY
     }
 
     public enum AnalogToDigitalType
