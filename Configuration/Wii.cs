@@ -6,7 +6,7 @@ using Dahomey.Json.Attributes;
 namespace GuitarConfiguratorSharp.Configuration
 {
     public interface WiiInput {
-        public WiiController wiiController { get; }
+        public WiiController WiiController { get; }
         static public Dictionary<WiiController, string> caseStatements = new Dictionary<WiiController, string>() {
             {WiiController.ClassicController, "WII_CLASSIC_CONTROLLER"}
         };
@@ -14,14 +14,15 @@ namespace GuitarConfiguratorSharp.Configuration
     [JsonDiscriminator(nameof(WiiButton))]
     public class WiiButton : GroupableButton, WiiInput
     {
-        public WiiButton(WiiButtonType button, WiiController controller, int debounce, OutputButton type, Color ledOn, Color ledOff) : base(InputControllerType.Wii, debounce, type, ledOn, ledOff)
+        public WiiButton(Microcontroller controller, WiiButtonType button, WiiController wiiController, int debounce, OutputButton type, Color ledOn, Color ledOff) : base(controller, InputControllerType.Wii, debounce, type, ledOn, ledOff)
         {
             this.button = button;
-            this.wiiController = controller;
+            this.WiiController = wiiController;
         }
         public WiiButtonType button { get; }
 
-        public WiiController wiiController { get; }
+        public WiiController WiiController { get; }
+        public override string Input => Enum.GetName(typeof(WiiButtonType), button)!;
 
         private Dictionary<WiiButtonType, string> mapping = new Dictionary<WiiButtonType, string>() {
             {WiiButtonType.ClassicRT,               "~(data[4] >> 1) & 1"},
@@ -78,10 +79,10 @@ namespace GuitarConfiguratorSharp.Configuration
 
         public override StandardButtonType standardButton => StandardButtonMap.wiiButtonMap[button];
 
-        public override string generate(Microcontroller controller, IEnumerable<Binding> bindings)
+        public override string generate(IEnumerable<Binding> bindings)
         {
             // High res uses the same buttons, only they are at different bytes
-            if (this.wiiController == WiiController.ClassicControllerHighRes)
+            if (this.WiiController == WiiController.ClassicControllerHighRes)
             {
                 return mapping[button].Replace("data[4]", "data[6]").Replace("data[5]", "data[7]");
             }
@@ -91,14 +92,15 @@ namespace GuitarConfiguratorSharp.Configuration
     [JsonDiscriminator(nameof(WiiAnalog))]
     public class WiiAnalog : GroupableAxis, WiiInput
     {
-        public WiiAnalog(WiiAxis axis, WiiController controller, OutputAxis type, Color ledOn, Color ledOff, float multiplier, int offset, int deadzone, bool trigger) : base(InputControllerType.Wii, type, ledOn, ledOff, multiplier, offset, deadzone, trigger)
+        public WiiAnalog(Microcontroller controller, WiiAxis axis, WiiController wiiController, OutputAxis type, Color ledOn, Color ledOff, float multiplier, int offset, int deadzone, bool trigger) : base(controller, InputControllerType.Wii, type, ledOn, ledOff, multiplier, offset, deadzone, trigger)
         {
             this.axis = axis;
-            this.wiiController = controller;
+            this.WiiController = wiiController;
         }
         public WiiAxis axis { get; }
 
-        public WiiController wiiController { get; }
+        public WiiController WiiController { get; }
+        public override string Input => Enum.GetName(typeof(WiiAxis), axis)!;
 
         public override StandardAxisType standardAxis => StandardAxisMap.wiiAxisMap[axis];
         private Dictionary<WiiAxis, string> mappings = new Dictionary<WiiAxis, string>() {
@@ -144,7 +146,7 @@ namespace GuitarConfiguratorSharp.Configuration
             {WiiAxis.NunchukRotationRoll,       $"fxpt_atan2(accX,accZ)"}
         };
 
-        public override string generate(Microcontroller controller, IEnumerable<Binding> bindings)
+        public override string generate(IEnumerable<Binding> bindings)
         {
             return mappings[this.axis];
         }
@@ -158,6 +160,10 @@ namespace GuitarConfiguratorSharp.Configuration
             return @"uint16_t accX = ((data[2] << 2) | ((data[5] & 0xC0) >> 6)) - 511;
                     uint16_t accY = ((data[3] << 2) | ((data[5] & 0x30) >> 4)) - 511;
                     uint16_t accZ = ((data[4] << 2) | ((data[5] & 0xC) >> 2)) - 511;";
+        }
+        internal override string generateRaw(IEnumerable<Binding> bindings)
+        {
+            return generate(bindings);
         }
     }
 }

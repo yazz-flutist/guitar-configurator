@@ -18,7 +18,7 @@ namespace GuitarConfiguratorSharp.Configuration
 
     public abstract class GroupableAxis : Axis
     {
-        protected GroupableAxis(InputControllerType inputType, OutputAxis type, Color ledOn, Color ledOff, float multiplier, int offset, int deadzone, bool trigger) : base(inputType, type, ledOn, ledOff, multiplier, offset, deadzone, trigger)
+        protected GroupableAxis(Microcontroller controller, InputControllerType inputType, OutputAxis type, Color ledOn, Color ledOff, float multiplier, int offset, int deadzone, bool trigger) : base(controller, inputType, type, ledOn, ledOff, multiplier, offset, deadzone, trigger)
         {
         }
 
@@ -27,7 +27,7 @@ namespace GuitarConfiguratorSharp.Configuration
 
     public abstract class GroupableButton : Button
     {
-        protected GroupableButton(InputControllerType inputType, int debounce, OutputButton type, Color ledOn, Color ledOff) : base(inputType, debounce, type, ledOn, ledOff)
+        protected GroupableButton(Microcontroller controller, InputControllerType inputType, int debounce, OutputButton type, Color ledOn, Color ledOff) : base(controller, inputType, debounce, type, ledOn, ledOff)
         {
         }
 
@@ -38,7 +38,7 @@ namespace GuitarConfiguratorSharp.Configuration
     [JsonDiscriminator(nameof(AnalogToDigital))]
     public class AnalogToDigital : Button, WiiInput, PS2Input
     {
-        public AnalogToDigital(int threshold, Axis analog, AnalogToDigitalType analogToDigitalType, int debounce, OutputButton type, Color ledOn, Color ledOff) : base(analog.InputType, debounce, type, ledOn, ledOff)
+        public AnalogToDigital(Microcontroller controller, int threshold, Axis analog, AnalogToDigitalType analogToDigitalType, int debounce, OutputButton type, Color ledOn, Color ledOff) : base(controller, analog.InputType, debounce, type, ledOn, ledOff)
         {
             this.Analog = analog;
             this.AnalogToDigitalType = analogToDigitalType;
@@ -46,22 +46,27 @@ namespace GuitarConfiguratorSharp.Configuration
         }
         public AnalogToDigitalType AnalogToDigitalType { get; set; }
         public Axis Analog { get; set; }
+        public override string Input => Analog.Input;
 
         public int Threshold { get; }
+
+        [JsonIgnore]
+        public int Pin => Analog is DirectAnalog ? (Analog as DirectAnalog)!.Pin : throw new InvalidOperationException();
         [JsonIgnore]
         public PS2Controller ps2Controller => Analog is PS2Analog ? (Analog as PS2Analog)!.ps2Controller : throw new InvalidOperationException();
         [JsonIgnore]
-        public WiiController wiiController => Analog is WiiAnalog ? (Analog as WiiAnalog)!.wiiController : throw new InvalidOperationException();
+        public WiiController WiiController => Analog is WiiAnalog ? (Analog as WiiAnalog)!.WiiController : throw new InvalidOperationException();
 
-        public override string generate(Microcontroller controller, IEnumerable<Binding> bindings)
+        public override string generate(IEnumerable<Binding> bindings)
         {
             switch (AnalogToDigitalType)
             {
                 case AnalogToDigitalType.Trigger:
+                    return $"{Analog.generateRaw(bindings)} > {(int)((Threshold + (Analog.Offset * Analog.Multiplier)) * 2)}";
                 case AnalogToDigitalType.JoyHigh:
-                    return $"({Analog.generate(controller, bindings)}) > {Threshold}";
+                    return $"{Analog.generateRaw(bindings)} > {(int)(Threshold + 128 + (Analog.Offset * Analog.Multiplier))}";
                 case AnalogToDigitalType.JoyLow:
-                    return $"({Analog.generate(controller, bindings)}) < -{Threshold}";
+                    return $"{Analog.generateRaw(bindings)} < {(int)((-Threshold) + 128 + (Analog.Offset * Analog.Multiplier))}";
             }
             return "";
         }
@@ -69,7 +74,7 @@ namespace GuitarConfiguratorSharp.Configuration
     [JsonDiscriminator(nameof(DigitalToAnalog))]
     public class DigitalToAnalog : Axis, WiiInput, PS2Input
     {
-        public DigitalToAnalog(int value, Button button, AnalogToDigitalType analogToDigitalType, OutputAxis type, Color ledOn, Color ledOff, float multiplier, int offset, int deadzone, bool trigger) : base(button.InputType, type, ledOn, ledOff, multiplier, offset, deadzone, trigger)
+        public DigitalToAnalog(Microcontroller controller, int value, Button button, AnalogToDigitalType analogToDigitalType, OutputAxis type, Color ledOn, Color ledOff, float multiplier, int offset, int deadzone, bool trigger) : base(controller, button.InputType, type, ledOn, ledOff, multiplier, offset, deadzone, trigger)
         {
             this.Button = button;
             this.AnalogToDigitalType = analogToDigitalType;
@@ -80,20 +85,30 @@ namespace GuitarConfiguratorSharp.Configuration
         public Button Button { get; set; }
         public int Value { get; set; }
         [JsonIgnore]
+        public int Pin => Button is DirectDigital ? (Button as DirectDigital)!.Pin : throw new InvalidOperationException();
+        [JsonIgnore]
         public PS2Controller ps2Controller => Button is PS2Button ? (Button as PS2Button)!.ps2Controller : throw new InvalidOperationException();
         [JsonIgnore]
-        public WiiController wiiController => Button is WiiButton ? (Button as WiiButton)!.wiiController : throw new InvalidOperationException();
-        public override string generate(Microcontroller controller, IEnumerable<Binding> bindings)
+        public WiiController WiiController => Button is WiiButton ? (Button as WiiButton)!.WiiController : throw new InvalidOperationException();
+
+        public override string Input => Button.Input;
+
+        public override string generate(IEnumerable<Binding> bindings)
         {
             switch (AnalogToDigitalType)
             {
                 case AnalogToDigitalType.Trigger:
                 case AnalogToDigitalType.JoyHigh:
-                    return $"({Button.generate(controller, bindings)}) * {Value}";
+                    return $"({Button.generate(bindings)}) * {Value}";
                 case AnalogToDigitalType.JoyLow:
-                    return $"({Button.generate(controller, bindings)}) * {-Value}";
+                    return $"({Button.generate(bindings)}) * {-Value}";
             }
             return "";
+        }
+
+        internal override string generateRaw(IEnumerable<Binding> bindings)
+        {
+            return generate(bindings);
         }
     }
 
@@ -101,7 +116,7 @@ namespace GuitarConfiguratorSharp.Configuration
 
     public abstract class Axis : Binding
     {
-        protected Axis(InputControllerType inputType, OutputAxis type, Color ledOn, Color ledOff, float multiplier, int offset, int deadzone, bool trigger) : base(inputType, ledOn, ledOff)
+        protected Axis(Microcontroller controller, InputControllerType inputType, OutputAxis type, Color ledOn, Color ledOff, float multiplier, int offset, int deadzone, bool trigger) : base(controller, inputType, ledOn, ledOff)
         {
             Multiplier = multiplier;
             Offset = offset;
@@ -116,10 +131,12 @@ namespace GuitarConfiguratorSharp.Configuration
         public int Deadzone { get; }
 
         public bool Trigger { get; }
+
+        internal abstract string generateRaw(IEnumerable<Binding> bindings);
     }
     public abstract class Button : Binding
     {
-        protected Button(InputControllerType inputType, int debounce, OutputButton type, Color ledOn, Color ledOff) : base(inputType, ledOn, ledOff)
+        protected Button(Microcontroller controller, InputControllerType inputType, int debounce, OutputButton type, Color ledOn, Color ledOff) : base(controller, inputType, ledOn, ledOff)
         {
             this.Debounce = debounce;
             this.Type = type;
@@ -357,13 +374,21 @@ namespace GuitarConfiguratorSharp.Configuration
             set;
         }
 
-        protected Binding(InputControllerType inputType, Color ledOn, Color ledOff)
+        public abstract string Input
+        {
+            get;
+        }
+
+        public Microcontroller Controller { get; }
+
+        protected Binding(Microcontroller controller, InputControllerType inputType, Color ledOn, Color ledOff)
         {
             InputType = inputType;
             LedOn = ledOn;
             LedOff = ledOff;
+            Controller = controller;
         }
         // provide C code that generates a boolean value
-        public abstract string generate(Microcontroller controller, IEnumerable<Binding> bindings);
+        public abstract string generate(IEnumerable<Binding> bindings);
     }
 }

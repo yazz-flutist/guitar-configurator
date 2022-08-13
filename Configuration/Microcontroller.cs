@@ -17,11 +17,19 @@ namespace GuitarConfiguratorSharp.Configuration
 
         public abstract string generateInit(IEnumerable<Binding> bindings);
         public abstract int SPI_RX { get; }
+
+        public abstract string GetPin(int pin);
+
         public abstract int SPI_TX { get; }
         public abstract int SPI_SCK { get; }
         public abstract int SPI_CSn { get; }
         public abstract int I2C_SDA { get; }
         public abstract int I2C_SCL { get; }
+
+        public abstract string getBoard();
+        public string generateAnalogReadRaw(IEnumerable<Binding> bindings, int pin) {
+            return $"adc_raw({pin})";
+        }
     }
 
     public class Pico : Microcontroller
@@ -60,12 +68,12 @@ namespace GuitarConfiguratorSharp.Configuration
 
         public override string generateAnalogRead(int pin, int index, int offset, float multiplier, int deadzone)
         {
-            return $"adc({pin - PIN_A0}, {offset}, {multiplier}, {deadzone})";
+            return $"adc({pin - PIN_A0}, {offset}, {(int)(multiplier * 64)}, {deadzone})";
         }
 
         public override string generateAnalogTriggerRead(int pin, int index, int offset, float multiplier, int deadzone)
         {
-            return $"adc_trigger({pin - PIN_A0}, {offset}, {multiplier}, {deadzone})";
+            return $"adc_trigger({pin - PIN_A0}, {offset}, {(int)(multiplier * 64)}, {deadzone})";
         }
 
         public override string generateSkip(bool SPIEnabled, bool I2CEnabled)
@@ -118,10 +126,28 @@ namespace GuitarConfiguratorSharp.Configuration
         {
             return pin;
         }
+
+        public override string getBoard()
+        {
+            // TODO: handle other boards
+            return "pico";
+        }
+
+        public override string GetPin(int pin)
+        {
+            string ret = $"GP{pin}";
+            if (pin >= 26)
+            {
+                ret += $" / ADC{pin - 26}";
+            }
+            return ret;
+        }
     }
 
     public abstract class AVRController : Microcontroller
     {
+        protected abstract int PIN_A0 { get; }
+
         public enum AVRPinMode
         {
             INPUT,
@@ -140,12 +166,12 @@ namespace GuitarConfiguratorSharp.Configuration
 
         public override string generateAnalogRead(int pin, int index, int offset, float multiplier, int deadzone)
         {
-            return $"adc({index}, {offset}, {multiplier}, {deadzone})";
+            return $"adc({index}, {offset}, {(int)(multiplier * 64)}, {deadzone})";
         }
 
         public override string generateAnalogTriggerRead(int pin, int index, int offset, float multiplier, int deadzone)
         {
-            return $"adc_trigger({index}, {offset}, {multiplier}, {deadzone})";
+            return $"adc_trigger({index}, {offset}, {(int)(multiplier * 64)}, {deadzone})";
         }
 
         public abstract int getIndex(int pin);
@@ -244,6 +270,40 @@ namespace GuitarConfiguratorSharp.Configuration
                 ret += $"DDR{port.Key} = {port.Value};";
             }
             ret += "SREG = oldSREG;";
+            return ret;
+        }
+
+        public override string GetPin(int pin)
+        {
+            string ret = $"{pin}";
+            if (pin >= PIN_A0)
+            {
+                ret += $" / A{pin - PIN_A0}";
+            }
+            if (pin == SPI_CSn)
+            {
+                ret += $" / SPI CS";
+            }
+            if (pin == SPI_RX)
+            {
+                ret += $" / SPI MISO";
+            }
+            if (pin == SPI_TX)
+            {
+                ret += $" / SPI MOSI";
+            }
+            if (pin == SPI_SCK)
+            {
+                ret += $" / SPI CLK";
+            }
+            if (pin == I2C_SCL)
+            {
+                ret += $" / I2C SCL";
+            }
+            if (pin == I2C_SDA)
+            {
+                ret += $" / I2C SDA";
+            }
             return ret;
         }
     }
@@ -410,7 +470,7 @@ namespace GuitarConfiguratorSharp.Configuration
 
         private static readonly char[] port_names = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'L' };
 
-        private const int PIN_A0 = 54;
+        protected override int PIN_A0 => 54;
 
         public override int getIndex(int pin)
         {
@@ -440,6 +500,11 @@ namespace GuitarConfiguratorSharp.Configuration
                 default:
                     return null;
             }
+        }
+
+        public override string getBoard()
+        {
+            return "mega";
         }
     }
 
@@ -472,8 +537,7 @@ namespace GuitarConfiguratorSharp.Configuration
             'C', 'C', 'C', 'C', 'C'
         };
         private static readonly char[] port_names = { 'B', 'C', 'D' };
-
-        private const int PIN_A0 = 14;
+        protected override int PIN_A0 => 14;
 
         public override int PinCount => pin_inputs.Length;
 
@@ -505,6 +569,11 @@ namespace GuitarConfiguratorSharp.Configuration
                 default:
                     return null;
             }
+        }
+
+        public override string getBoard()
+        {
+            return "uno";
         }
     }
 
@@ -613,7 +682,8 @@ namespace GuitarConfiguratorSharp.Configuration
             13,	// A10		D10		PB6					ADC13
             9	// A11		D12		PD6					ADC9
         };
-        private const int PIN_A0 = 18;
+
+        protected override int PIN_A0 => 18;
 
         public override int getIndex(int pin)
         {
@@ -632,6 +702,12 @@ namespace GuitarConfiguratorSharp.Configuration
         public override AVRPinMode? forcedMode(int pin)
         {
             return null;
+        }
+
+        public override string getBoard()
+        {
+            // TODO: handle other boards
+            return "micro";
         }
     }
 }

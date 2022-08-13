@@ -19,13 +19,14 @@ namespace GuitarConfiguratorSharp.Configuration
     [JsonDiscriminator(nameof(DirectGHFiveTarBarButton))]
     public class DirectGHFiveTarBarButton : Button
     {
-        public DirectGHFiveTarBarButton(GHFiveTarButton Button, int debounce, OutputButton type, Color ledOn, Color ledOff) : base(InputControllerType.Direct, debounce, type, ledOn, ledOff)
+        public DirectGHFiveTarBarButton(Microcontroller controller, GHFiveTarButton Button, int debounce, OutputButton type, Color ledOn, Color ledOff) : base(controller, InputControllerType.Direct, debounce, type, ledOn, ledOff)
         {
             this.Button = Button;
         }
 
         public GHFiveTarButton Button { get; }
 
+        public override string Input => Enum.GetName(typeof(GHFiveTarButton), Button)!;
         static Dictionary<int, BarButton> mappings = new Dictionary<int, BarButton>() {
             {0x19, BarButton.Green | BarButton.Yellow},
             {0x1A, BarButton.Yellow},
@@ -77,7 +78,7 @@ namespace GuitarConfiguratorSharp.Configuration
             GHFiveTarButton.TapBlue,
             GHFiveTarButton.TapOrange
         };
-        public override string generate(Microcontroller controller, IEnumerable<Binding> bindings)
+        public override string generate(IEnumerable<Binding> bindings)
         {
             if (frets.Contains(this.Button))
             {
@@ -103,11 +104,13 @@ namespace GuitarConfiguratorSharp.Configuration
     [JsonDiscriminator(nameof(DirectGHFiveTarBarAnalog))]
     public class DirectGHFiveTarBarAnalog : Axis
     {
-        public DirectGHFiveTarBarAnalog(OutputAxis type, Color ledOn, Color ledOff, float multiplier, int offset, int deadzone, bool trigger) : base(InputControllerType.Direct, type, ledOn, ledOff, multiplier, offset, deadzone, trigger)
+        public override string Input => "Guitar Hero 5 Tap Bar";
+
+        public DirectGHFiveTarBarAnalog(Microcontroller controller, OutputAxis type, Color ledOn, Color ledOff, float multiplier, int offset, int deadzone, bool trigger) : base(controller, InputControllerType.Direct, type, ledOn, ledOff, multiplier, offset, deadzone, trigger)
         {
         }
 
-        public override string generate(Microcontroller controller, IEnumerable<Binding> bindings)
+        public override string generate(IEnumerable<Binding> bindings)
         {
             return "fivetar_buttons[1]";
         }
@@ -116,15 +119,21 @@ namespace GuitarConfiguratorSharp.Configuration
             return @"uint8_t fivetar_buttons[2];
                     twi_readFromPointer(GH5NECK_ADDR, GH5NECK_BUTTONS_PTR, 2, fivetar_buttons);";
         }
+
+        internal override string generateRaw(IEnumerable<Binding> bindings)
+        {
+            return generate(bindings);
+        }
     }
     [JsonDiscriminator(nameof(DirectGHWTBarButton))]
     public class DirectGHWTBarButton : Button
     {
-        public DirectGHWTBarButton(GHWTTarButton Button, int debounce, OutputButton type, Color ledOn, Color ledOff) : base(InputControllerType.Direct, debounce, type, ledOn, ledOff)
+        public DirectGHWTBarButton(Microcontroller controller, GHWTTarButton Button, int debounce, OutputButton type, Color ledOn, Color ledOff) : base(controller, InputControllerType.Direct, debounce, type, ledOn, ledOff)
         {
             this.Button = Button;
         }
 
+        public override string Input => Enum.GetName(typeof(GHWTTarButton), Button)!;
         public GHWTTarButton Button { get; }
         private static List<GHWTTarButton> tap = new List<GHWTTarButton>() {
             GHWTTarButton.TapGreen,
@@ -133,7 +142,7 @@ namespace GuitarConfiguratorSharp.Configuration
             GHWTTarButton.TapBlue,
             GHWTTarButton.TapOrange
         };
-        public override string generate(Microcontroller controller, IEnumerable<Binding> bindings)
+        public override string generate(IEnumerable<Binding> bindings)
         {
             return $"(wttapbindings[fivetar_buttons[1]] >> {tap.IndexOf(this.Button)}) & 1";
         }
@@ -162,11 +171,12 @@ namespace GuitarConfiguratorSharp.Configuration
 
     public class DirectGHWTBarAnalog : Axis
     {
-        public DirectGHWTBarAnalog(OutputAxis type, Color ledOn, Color ledOff, float multiplier, int offset, int deadzone, bool trigger) : base(InputControllerType.Direct, type, ledOn, ledOff, multiplier, offset, deadzone, trigger)
+        public DirectGHWTBarAnalog(Microcontroller controller, OutputAxis type, Color ledOn, Color ledOff, float multiplier, int offset, int deadzone, bool trigger) : base(controller, InputControllerType.Direct, type, ledOn, ledOff, multiplier, offset, deadzone, trigger)
         {
         }
+        public override string Input => "Guitar Hero WT Tap Bar";
 
-        public override string generate(Microcontroller controller, IEnumerable<Binding> bindings)
+        public override string generate(IEnumerable<Binding> bindings)
         {
             return "lastTap";
         }
@@ -176,6 +186,10 @@ namespace GuitarConfiguratorSharp.Configuration
                     if (pulse == digitalReadPulse(&wtPin, LOW, 50)) {
                         lastTap = wttapbindings[pulse >> 1];
                     }";
+        }
+        internal override string generateRaw(IEnumerable<Binding> bindings)
+        {
+            return generate(bindings);
         }
     }
 }

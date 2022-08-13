@@ -17,16 +17,18 @@ namespace GuitarConfiguratorSharp.Configuration
     [JsonDiscriminator(nameof(PS2Button))]
     public class PS2Button : GroupableButton, PS2Input
     {
-        public PS2Button(PS2ButtonType button, PS2Controller controller, int debounce, OutputButton type, Color ledOn, Color ledOff) : base(InputControllerType.PS2, debounce, type, ledOn, ledOff)
+        public PS2Button(Microcontroller controller, PS2ButtonType button, PS2Controller PS2controller, int debounce, OutputButton type, Color ledOn, Color ledOff) : base(controller, InputControllerType.PS2, debounce, type, ledOn, ledOff)
         {
             this.button = button;
-            this.ps2Controller = controller;
+            this.ps2Controller = PS2controller;
         }
 
         public PS2ButtonType button { get; }
         public PS2Controller ps2Controller { get; }
 
         public override StandardButtonType standardButton => StandardButtonMap.ps2ButtonMap[button];
+
+        public override string Input => Enum.GetName(typeof(PS2ButtonType), button)!;
 
         private Dictionary<PS2ButtonType, String> buttonMap = new Dictionary<PS2ButtonType, string>() {
             {PS2ButtonType.GuitarGreen, "in[4] >> 1"},
@@ -51,7 +53,7 @@ namespace GuitarConfiguratorSharp.Configuration
             {PS2ButtonType.Cross,       "in[4] >> 6"},
             {PS2ButtonType.Square,      "in[4] >> 7"}
         };
-        public override string generate(Microcontroller controller, IEnumerable<Binding> bindings)
+        public override string generate(IEnumerable<Binding> bindings)
         {
             return $"({buttonMap[button]} & 1)";
         }
@@ -61,12 +63,12 @@ namespace GuitarConfiguratorSharp.Configuration
     [JsonDiscriminator(nameof(PS2Analog))]
     public class PS2Analog : GroupableAxis, PS2Input
     {
-        public PS2Analog(PS2Axis axis, PS2Controller controller, OutputAxis type, Color ledOn, Color ledOff, float multiplier, int offset, int deadzone, bool trigger) : base(InputControllerType.PS2, type, ledOn, ledOff, multiplier, offset, deadzone, trigger)
+        public PS2Analog(Microcontroller controller, PS2Axis axis, PS2Controller PS2controller, OutputAxis type, Color ledOn, Color ledOff, float multiplier, int offset, int deadzone, bool trigger) : base(controller, InputControllerType.PS2, type, ledOn, ledOff, multiplier, offset, deadzone, trigger)
         {
             this.axis = axis;
-            this.ps2Controller = controller;
+            this.ps2Controller = PS2controller;
         }
-
+        public override string Input => Enum.GetName(typeof(PS2Axis), axis)!;
         private Dictionary<PS2Axis, String> analogMap = new Dictionary<PS2Axis, string>() {
             { PS2Axis.DualshockLeftX,   "(in[7] - 128) << 8"  },
             { PS2Axis.DualshockLeftY,   "-(in[8] - 127) << 8" },
@@ -107,7 +109,7 @@ namespace GuitarConfiguratorSharp.Configuration
 
         public override StandardAxisType standardAxis => StandardAxisMap.ps2AxisMap[axis];
 
-        public override string generate(Microcontroller controller, IEnumerable<Binding> bindings)
+        public override string generate(IEnumerable<Binding> bindings)
         {
             if (this.ps2Controller == PS2Controller.Dualshock2)
             {
@@ -144,5 +146,9 @@ namespace GuitarConfiguratorSharp.Configuration
             return sb.ToString().Substring(2);
         }
 
+        internal override string generateRaw(IEnumerable<Binding> bindings)
+        {
+            return generate(bindings);
+        }
     }
 }

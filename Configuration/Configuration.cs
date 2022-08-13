@@ -70,32 +70,14 @@ namespace GuitarConfiguratorSharp.Configuration
         public DeviceType DeviceType { get; set; }
         public EmulationType EmulationType { get; set; }
         public RhythmType RhythmType { get; set; }
-
-        [JsonIgnore]
         public Microcontroller MicroController { get; set; }
-
-        public string Board { get; }
-
-        public uint CpuFreq { get; }
         public TiltOrientation TiltOrientation { get; set; }
 
 
         public List<Binding> Bindings { get; }
 
         [JsonConstructorAttribute]
-        public DeviceConfiguration(uint cpuFreq, String board, List<Binding> bindings, LedType ledType, DeviceType deviceType, EmulationType emulationType, RhythmType rhythmType, bool tiltEnabled)
-        {
-            this.Bindings = bindings;
-            this.MicroController = GuitarConfiguratorSharp.Configuration.Board.findMicrocontroller(GuitarConfiguratorSharp.Configuration.Board.findBoard(board, cpuFreq));
-            this.LedType = ledType;
-            this.DeviceType = deviceType;
-            this.EmulationType = emulationType;
-            this.RhythmType = rhythmType;
-            this.TiltEnabled = tiltEnabled;
-            this.CpuFreq = cpuFreq;
-            this.Board = board;
-        }
-        public DeviceConfiguration(Microcontroller microcontroller, uint cpuFreq, String board, List<Binding> bindings, LedType ledType, DeviceType deviceType, EmulationType emulationType, RhythmType rhythmType, bool tiltEnabled)
+        public DeviceConfiguration(Microcontroller microcontroller, List<Binding> bindings, LedType ledType, DeviceType deviceType, EmulationType emulationType, RhythmType rhythmType, bool tiltEnabled)
         {
             this.Bindings = bindings;
             this.MicroController = microcontroller;
@@ -104,11 +86,9 @@ namespace GuitarConfiguratorSharp.Configuration
             this.EmulationType = emulationType;
             this.RhythmType = rhythmType;
             this.TiltEnabled = tiltEnabled;
-            this.CpuFreq = cpuFreq;
-            this.Board = board;
         }
 
-        public DeviceConfiguration(Microcontroller microcontroller, uint cpuFreq, String board)
+        public DeviceConfiguration(Microcontroller microcontroller)
         {
             MicroController = microcontroller;
             this.Bindings = new List<Binding>();
@@ -117,13 +97,13 @@ namespace GuitarConfiguratorSharp.Configuration
             this.EmulationType = EmulationType.Universal;
             this.RhythmType = RhythmType.GuitarHero;
             this.TiltEnabled = false;
-            this.CpuFreq = cpuFreq;
-            this.Board = board;
         }
 
-        public static JsonSerializerOptions generateOptions() {
-            
+        public static JsonSerializerOptions getJSONOptions(Microcontroller? controller)
+        {
+
             JsonSerializerOptions options = new JsonSerializerOptions();
+            options.Converters.Add(new MicrocontrollerJsonConverter(controller));
             options.SetupExtensions();
             DiscriminatorConventionRegistry registry = options.GetDiscriminatorConventionRegistry();
             registry.RegisterType<DirectGHFiveTarBarAnalog>();
@@ -153,9 +133,9 @@ namespace GuitarConfiguratorSharp.Configuration
             var hasPS2 = Bindings.FilterCast<Binding, PS2Input>().Any();
             var hasSPI = hasPS2 || LedType == LedType.APA102;
             var hasI2C = hasWii;
-            string configFile = Path.Combine(pio.ProjectDir, "lib", "config", "src", "config.h");
+            string configFile = Path.Combine(pio.ProjectDir, "include", "config.h");
             var lines = File.ReadAllLines(configFile);
-            var json = JsonSerializer.Serialize(this, generateOptions());
+            var json = JsonSerializer.Serialize(this, getJSONOptions(MicroController));
             var bytes = Encoding.UTF8.GetBytes(json);
             var bytesLine = "";
             var bytesLenLine = "";
@@ -171,70 +151,95 @@ namespace GuitarConfiguratorSharp.Configuration
             for (var i = 0; i < lines.Length; i++)
             {
                 var line = lines[i];
-                if (line.StartsWith("#define TICK"))
+                if (line.StartsWith("#define TICK "))
                 {
                     lines[i] = $"#define TICK {generateTick()}";
                 }
-                if (line.StartsWith("#define ADC_COUNT"))
+                if (line.StartsWith("#define ADC_COUNT "))
                 {
                     lines[i] = $"#define ADC_COUNT {Bindings.FilterCast<Binding, DirectAnalog>().Count()}";
                 }
-                if (line.StartsWith("#define DIGITAL_COUNT"))
+                if (line.StartsWith("#define DIGITAL_COUNT "))
                 {
                     lines[i] = $"#define DIGITAL_COUNT {Bindings.FilterCast<Binding, Button>().Count()}";
                 }
-                if (line.StartsWith("#define LED_TYPE"))
+                if (line.StartsWith("#define LED_TYPE "))
                 {
                     lines[i] = $"#define LED_TYPE {((byte)LedType)}";
                 }
-                if (line.StartsWith("#define TILT_ENABLED"))
+                if (line.StartsWith("#define TILT_ENABLED "))
                 {
                     lines[i] = $"#define TILT_ENABLED {TiltEnabled.ToString().ToLower()}";
                 }
-                if (line.StartsWith("#define CONSOLE_TYPE"))
+                if (line.StartsWith("#define CONSOLE_TYPE "))
                 {
                     lines[i] = $"#define CONSOLE_TYPE {((byte)EmulationType)}";
                 }
-                if (line.StartsWith("#define DEVICE_TYPE"))
+                if (line.StartsWith("#define DEVICE_TYPE "))
                 {
                     lines[i] = $"#define DEVICE_TYPE {((byte)DeviceType)}";
                 }
-                if (line.StartsWith("#define ADC_PINS"))
+                if (line.StartsWith("#define ADC_PINS "))
                 {
                     // Sort by pin index, and then map to adc number and turn into an array
                     lines[i] = $"#define ADC_PINS {{{String.Join(",", Bindings.FilterCast<Binding, DirectAnalog>().OrderBy(s => s.Pin).Select(s => MicroController.getChannel(s.Pin).ToString()))}}}";
                 }
-                if (line.StartsWith("#define PIN_INIT"))
+                if (line.StartsWith("#define PIN_INIT "))
                 {
                     // Sort by pin index, and then map to adc number and turn into an array
                     lines[i] = $"#define PIN_INIT {MicroController.generateInit(Bindings)}";
                 }
                 if (MicroController is Pico)
                 {
-                    if (line.StartsWith("#define SKIP_MASK_PICO"))
+                    if (line.StartsWith("#define SKIP_MASK_PICO "))
                     {
                         lines[i] = $"#define SKIP_MASK_PICO {MicroController.generateSkip(hasSPI, hasI2C)}";
                     }
                 }
                 else
                 {
-                    if (line.StartsWith("#define SKIP_MASK_AVR"))
+                    if (line.StartsWith("#define SKIP_MASK_AVR "))
                     {
                         lines[i] = $"#define SKIP_MASK_AVR {MicroController.generateSkip(hasSPI, hasI2C)}";
                     }
                 }
-                if (line.StartsWith("#define CONFIGURATION_LEN"))
+                if (line.StartsWith("#define CONFIGURATION_LEN "))
                 {
                     lines[i] = bytesLenLine;
                 }
-                else if (line.StartsWith("#define CONFIGURATION"))
+                else if (line.StartsWith("#define CONFIGURATION "))
                 {
                     lines[i] = bytesLine;
                 }
+                else if (line.StartsWith("#define BOARD "))
+                {
+                    lines[i] = $"#define BOARD \"{MicroController.getBoard()}\"";
+                }
             }
+            Console.WriteLine(configFile);
             // TODO: generate a init define too
             // TODO: theres a bunch of different inits littered around the place
             File.WriteAllLines(configFile, lines);
+        }
+        public class MicrocontrollerJsonConverter : JsonConverter<Microcontroller>
+        {
+            private Microcontroller? CurrentController;
+
+            public MicrocontrollerJsonConverter(Microcontroller? currentController)
+            {
+                CurrentController = currentController;
+            }
+
+            public override Microcontroller Read(
+                ref Utf8JsonReader reader,
+                Type typeToConvert,
+                JsonSerializerOptions options) => CurrentController!;
+
+            public override void Write(
+                Utf8JsonWriter writer,
+                Microcontroller dateTimeValue,
+                JsonSerializerOptions options) => writer.WriteNullValue();
+
         }
         public string generateTick()
         {
@@ -247,7 +252,7 @@ namespace GuitarConfiguratorSharp.Configuration
             var wiiBindings = Bindings
                 .Where(binding => binding.InputType == InputControllerType.Wii)
                 .FilterCast<Binding, WiiInput>()
-                .GroupBy(binding => binding.wiiController)
+                .GroupBy(binding => binding.WiiController)
                 .ToList();
             var directBindings = Bindings.Where(binding => binding.InputType == InputControllerType.Direct);
             var ret = "";
@@ -297,7 +302,7 @@ namespace GuitarConfiguratorSharp.Configuration
 
         private string generateAnalogs(IEnumerable<Axis> axes, Microcontroller controller)
         {
-            return string.Join(" ", axes.Select(axis => axis.Type.generate() + " = " + axis.generate(controller, axes.FilterCast<Axis, Binding>()).Replace("{self}", axis.Type.generate()) + ";")) + " ";
+            return string.Join(" ", axes.Select(axis => axis.Type.generate() + " = " + axis.generate(axes.FilterCast<Axis, Binding>()).Replace("{self}", axis.Type.generate()) + ";")) + " ";
         }
         private string generateButtons(IEnumerable<Button> buttons, Microcontroller controller)
         {
@@ -314,7 +319,7 @@ namespace GuitarConfiguratorSharp.Configuration
                         foreach (var button in buttonList)
                         {
                             int debounce = button.Debounce;
-                            var generated = button.generate(controller, Bindings);
+                            var generated = button.generate(Bindings);
                             var outputBit = button.Type.index();
                             var outputVar = button.Type is GenericControllerHat ? "report->hat" : "report->buttons";
                             if (debounce == 0)
