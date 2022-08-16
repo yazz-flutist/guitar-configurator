@@ -28,15 +28,18 @@ namespace GuitarConfiguratorSharp.Utils
         public delegate void TextChangedHandler(string message, bool clear);
 
         public event TextChangedHandler? TextChanged;
-        public delegate void PlatformIOReadyHandler();
+        public delegate void PlatformIOWorkingHandler(bool working);
 
-        public event PlatformIOReadyHandler? PlatformIOReady;
+        public event PlatformIOWorkingHandler? PlatformIOWorking;
+        public delegate void PlatformIOInstalledHandler();
+
+        public event PlatformIOInstalledHandler? PlatformIOInstalled;
         public delegate void CommandCompleteHandler();
 
         public event CommandCompleteHandler? CommandComplete;
 
         private string pioExecutable;
-        public string ProjectDir {get;}
+        public string ProjectDir { get; }
         private List<string> environments;
 
         public bool ready { get; }
@@ -52,7 +55,8 @@ namespace GuitarConfiguratorSharp.Utils
             ready = System.IO.Directory.Exists(this.ProjectDir) && System.IO.File.Exists(pioExecutablePath);
         }
 
-        public async Task RevertFirmware() {
+        public async Task RevertFirmware()
+        {
             string appdataFolder = AssetUtils.GetAppDataFolder();
             if (System.IO.Directory.Exists(this.ProjectDir))
             {
@@ -60,7 +64,7 @@ namespace GuitarConfiguratorSharp.Utils
             }
             this.ProgressChanged?.Invoke("Extracting Firmware", 0, 0);
             string firmwareZipPath = Path.Combine(appdataFolder, "firmware.zip");
-            await AssetUtils.ExtractZip("firmware.zip",firmwareZipPath, ProjectDir);
+            await AssetUtils.ExtractZip("firmware.zip", firmwareZipPath, ProjectDir);
         }
 
         public async Task InitialisePlatformIO()
@@ -84,12 +88,13 @@ namespace GuitarConfiguratorSharp.Utils
                     environments.Add(key.SectionName.Split(':')[1]);
                 }
             }
+            File.WriteAllText(Path.Combine(ProjectDir, "platformio.ini"), File.ReadAllText(Path.Combine(ProjectDir, "platformio.ini")).Replace("extra_scripts", "extra_scripts2"));
             if (!System.IO.File.Exists(pioExecutablePath))
             {
                 this.ProgressChanged?.Invoke("Extracting Platform.IO Installer", 0, 0);
                 Directory.CreateDirectory(pioFolder);
                 Directory.CreateDirectory(installerPath);
-                await AssetUtils.ExtractZip("pio-installer.zip",installerZipPath, installerPath);
+                await AssetUtils.ExtractZip("pio-installer.zip", installerZipPath, installerPath);
                 this.ProgressChanged?.Invoke("Searching for python", 1, 0);
                 var python = await FindPython();
                 this.ProgressChanged?.Invoke("Installing Platform.IO", 2, 10);
@@ -106,14 +111,20 @@ namespace GuitarConfiguratorSharp.Utils
                 installerProcess.Start();
                 installerProcess.BeginOutputReadLine();
                 installerProcess.BeginErrorReadLine();
-                installerProcess.WaitForExit();
+                await installerProcess.WaitForExitAsync();
                 System.IO.File.Delete(installerZipPath);
                 System.IO.Directory.Delete(installerPath, true);
-                await RunPlatformIO(null, "run", "Building packages", 2, 20, 90).ConfigureAwait(false);
-                await RunPlatformIO(null, "system prune -f", "Cleaning up", 2, 90, 90).ConfigureAwait(false);
+                this.PlatformIOInstalled?.Invoke();
+                await RunPlatformIO(null, "run", "Building packages", 2, 20, 90, null).ConfigureAwait(false);
+                await RunPlatformIO(null, "system prune -f", "Cleaning up", 2, 90, 90, null).ConfigureAwait(false);
+            }
+            else
+            {
+
+                this.PlatformIOInstalled?.Invoke();
             }
             this.ProgressChanged?.Invoke("Ready", 2, 100);
-            this.PlatformIOReady?.Invoke();
+            this.PlatformIOWorking?.Invoke(false);
         }
 
         public async Task<PlatformIOPort[]> GetPorts()
@@ -146,19 +157,13 @@ namespace GuitarConfiguratorSharp.Utils
 
         }
 
-        public Task<int> RunPlatformIO(string? environment, string command, string progress_message, int progress_state, double progress_starting_percentage, double progress_ending_percentage)
+        public async Task<int> RunPlatformIO(string? environment, string command, string progress_message, int progress_state, double progress_starting_percentage, double progress_ending_percentage, ConfigurableDevice? device)
         {
-            // When environment isn't set, we should be able to get a list of all targets, and then create percentages based on what target we are on
-            var tcs = new TaskCompletionSource<int>();
-            if (pioExecutable == null)
-            {
-                tcs.SetResult(0);
-            }
-            // TODO: can we get some sort of progress out of the text? I suspect not for compiling, but maybe for programming?
-            // If we can, then divide it into percentageStep
+            this.PlatformIOWorking?.Invoke(true);
             double percentageStep = (progress_ending_percentage - progress_starting_percentage) / environments.Count;
             double currentProgress = progress_starting_percentage;
             bool building = environment == null && command == "run";
+            bool uploading = environment != null && command.StartsWith("run");
             string appdataFolder = AssetUtils.GetAppDataFolder();
             string pioFolder = Path.Combine(appdataFolder, "platformio");
             Process process = new Process();
@@ -168,7 +173,12 @@ namespace GuitarConfiguratorSharp.Utils
             process.StartInfo.EnvironmentVariables["PLATFORMIO_CORE_DIR"] = pioFolder;
             if (environment != null)
             {
-                process.StartInfo.Arguments = $"--environment {environment} {command}";
+                var args = $"{command} --environment {environment}";
+                var arduino = device as Arduino;
+                if (arduino != null) {
+                    args += $" --upload-port {arduino.GetSerialPort()}";
+                }
+                process.StartInfo.Arguments = args;
                 percentageStep = (progress_ending_percentage - progress_starting_percentage);
             }
             else
@@ -179,15 +189,8 @@ namespace GuitarConfiguratorSharp.Utils
             process.StartInfo.UseShellExecute = false;
             process.StartInfo.RedirectStandardOutput = true;
             process.StartInfo.RedirectStandardError = true;
-
-            process.Exited += (sender, args) =>
-            {
-                tcs.SetResult(process.ExitCode);
-                process.Dispose();
-                CommandComplete?.Invoke();
-                this.ProgressChanged?.Invoke($"{progress_message} - Done", progress_state, currentProgress);
-            };
             TextChanged?.Invoke("", true);
+            int state = 0;
             process.OutputDataReceived += (sender, e) =>
             {
                 TextChanged?.Invoke(e.Data!, false);
@@ -199,7 +202,28 @@ namespace GuitarConfiguratorSharp.Utils
                         this.ProgressChanged?.Invoke($"{progress_message} - {matches[0].Groups[1].Value}", progress_state, currentProgress);
                         currentProgress += percentageStep;
                     }
-                    Console.WriteLine(e.Data);
+                }
+                if (uploading && e.Data != null)
+                {
+                    var matches = Regex.Matches(e.Data, @"Processing (.+?) \(.+\)");
+                    if (matches.Count > 0)
+                    {
+                        this.ProgressChanged?.Invoke($"{progress_message} - Building", progress_state, currentProgress);
+                        currentProgress += percentageStep / 5;
+                    }
+                    if (e.Data.StartsWith("Looking for upload port..."))
+                    {
+                        this.ProgressChanged?.Invoke($"{progress_message} - Looking for port", progress_state, currentProgress);
+                        currentProgress += percentageStep / 5;
+                        if (environment?.Contains("uno_mega_usb") == true)
+                        {
+                            device?.bootloaderUSB();
+                        }
+                        else
+                        {
+                            device?.bootloader();
+                        }
+                    }
                 }
             };
 
@@ -208,9 +232,79 @@ namespace GuitarConfiguratorSharp.Utils
             process.Start();
 
             process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
+            // process.BeginErrorReadLine();
+            char[] buffer = new char[1];
+            while (true)
+            {
+                if (state == 0)
+                {
+                    var line = await process.StandardError.ReadLineAsync();
+                    if (line != null)
+                    {
+                        if (line.Contains("AVR device initialized and ready to accept instructions"))
+                        {
+                            this.ProgressChanged?.Invoke($"{progress_message} - Reading Settings", progress_state, currentProgress);
+                            state = 1;
+                        }
+                        if (line.Contains("writing flash"))
+                        {
+                            this.ProgressChanged?.Invoke($"{progress_message} - Uploading", progress_state, currentProgress);
+                            state = 2;
+                        }
+                        if (line.Contains("reading on-chip flash data"))
+                        {
+                            this.ProgressChanged?.Invoke($"{progress_message} - Verifying", progress_state, currentProgress);
+                            state = 3;
+                        }
+                        if (line.Contains("avrdude done.  Thank you."))
+                        {
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    while ((await process.StandardError.ReadAsync(buffer, 0, 1)) > 0)
+                    {
 
-            return tcs.Task;
+                        // process character...for example:
+                        if (buffer[0] == '#')
+                        {
+                            currentProgress += percentageStep / 50 / 5;
+                        }
+                        if (buffer[0] == 's')
+                        {
+                            state = 0;
+                            break;
+                        }
+                        if (state == 1)
+                        {
+                            this.ProgressChanged?.Invoke($"{progress_message} - Reading Settings", progress_state, currentProgress);
+                        }
+                        if (state == 2)
+                        {
+                            this.ProgressChanged?.Invoke($"{progress_message} - Uploading", progress_state, currentProgress);
+                        }
+                        if (state == 3)
+                        {
+                            this.ProgressChanged?.Invoke($"{progress_message} - Verifying", progress_state, currentProgress);
+                        }
+                    }
+                }
+            }
+
+            await process.WaitForExitAsync();
+            CommandComplete?.Invoke();
+            if (uploading)
+            {
+                this.ProgressChanged?.Invoke($"{progress_message} - Waiting for Device", progress_state, currentProgress);
+            }
+            else
+            {
+                this.ProgressChanged?.Invoke($"{progress_message} - Done", progress_state, currentProgress);
+            }
+            this.PlatformIOWorking?.Invoke(false);
+            return process.ExitCode;
         }
         private async Task<string?> FindPython()
         {

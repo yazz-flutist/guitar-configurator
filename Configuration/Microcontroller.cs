@@ -26,7 +26,7 @@ namespace GuitarConfiguratorSharp.Configuration
         public abstract int I2C_SDA { get; }
         public abstract int I2C_SCL { get; }
 
-        public abstract string getBoard();
+        public abstract Board Board {get;}
         public string generateAnalogReadRaw(IEnumerable<Binding> bindings, int pin) {
             return $"adc_raw({pin})";
         }
@@ -54,6 +54,12 @@ namespace GuitarConfiguratorSharp.Configuration
         public override int I2C_SDA => I2C_SDA_Pico;
 
         public override int I2C_SCL => I2C_SCL_Pico;
+
+        public override Board Board {get;}
+
+        public Pico(Board board) {
+            this.Board = board;
+        }
 
         public override string generateDigitalRead(int pin, bool pull_up)
         {
@@ -125,12 +131,6 @@ namespace GuitarConfiguratorSharp.Configuration
         public override int getChannel(int pin)
         {
             return pin;
-        }
-
-        public override string getBoard()
-        {
-            // TODO: handle other boards
-            return "pico";
         }
 
         public override string GetPin(int pin)
@@ -472,6 +472,12 @@ namespace GuitarConfiguratorSharp.Configuration
 
         protected override int PIN_A0 => 54;
 
+        public override Board Board {get;}
+
+        public Mega(Board board) {
+            this.Board = board;
+        }
+
         public override int getIndex(int pin)
         {
             return pin_inputs[pin];
@@ -500,11 +506,6 @@ namespace GuitarConfiguratorSharp.Configuration
                 default:
                     return null;
             }
-        }
-
-        public override string getBoard()
-        {
-            return "mega";
         }
     }
 
@@ -541,6 +542,12 @@ namespace GuitarConfiguratorSharp.Configuration
 
         public override int PinCount => pin_inputs.Length;
 
+        public override Board Board {get;}
+
+        public Uno(Board board) {
+            this.Board = board;
+        }
+
         public override int getIndex(int pin)
         {
             return pin_inputs[pin];
@@ -569,11 +576,6 @@ namespace GuitarConfiguratorSharp.Configuration
                 default:
                     return null;
             }
-        }
-
-        public override string getBoard()
-        {
-            return "uno";
         }
     }
 
@@ -685,6 +687,11 @@ namespace GuitarConfiguratorSharp.Configuration
 
         protected override int PIN_A0 => 18;
 
+        public override Board Board {get;}
+
+        public Micro(Board board) {
+            this.Board = board;
+        }
         public override int getIndex(int pin)
         {
             return pin_index[pin];
@@ -702,12 +709,6 @@ namespace GuitarConfiguratorSharp.Configuration
         public override AVRPinMode? forcedMode(int pin)
         {
             return null;
-        }
-
-        public override string getBoard()
-        {
-            // TODO: handle other boards
-            return "micro";
         }
     }
 }

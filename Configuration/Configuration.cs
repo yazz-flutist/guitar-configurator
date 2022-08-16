@@ -211,12 +211,11 @@ namespace GuitarConfiguratorSharp.Configuration
                 {
                     lines[i] = bytesLine;
                 }
-                else if (line.StartsWith("#define BOARD "))
+                else if (line.StartsWith("#define ARDWIINO_BOARD "))
                 {
-                    lines[i] = $"#define BOARD \"{MicroController.getBoard()}\"";
+                    lines[i] = $"#define ARDWIINO_BOARD \"{MicroController.Board.ardwiinoName}\"";
                 }
             }
-            Console.WriteLine(configFile);
             // TODO: generate a init define too
             // TODO: theres a bunch of different inits littered around the place
             File.WriteAllLines(configFile, lines);

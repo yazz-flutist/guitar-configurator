@@ -18,7 +18,7 @@ public class PicoDevice : ConfigurableDevice
     public PicoDevice(PlatformIO pio, string path)
     {
         this.path = path;
-        this._config = new DeviceConfiguration(new Pico());
+        this._config = new DeviceConfiguration(Board.findMicrocontroller(Board.findBoard("pico",0)));
     }
 
     public bool IsSameDevice(IDevice device)
@@ -31,9 +31,9 @@ public class PicoDevice : ConfigurableDevice
         return false;
     }
 
-    public bool IsSameDevice(string path)
+    public bool IsSameDevice(string serial_or_path)
     {
-        return path == this.path;
+        return serial_or_path == this.path;
     }
 
     public string GetPath()
@@ -44,5 +44,13 @@ public class PicoDevice : ConfigurableDevice
     public override String ToString()
     {
         return $"Pico ({this.path})";
+    }
+
+    public void bootloader()
+    {
+    }
+
+    public void bootloaderUSB()
+    {
     }
 }
