@@ -29,7 +29,7 @@ public class BindingBitmapConverter : IMultiValueConverter
             return null;
         string? imageValue = null;
         object value = values[1]!;
-        DeviceType type = (DeviceType)values[0]!;
+        DeviceControllerType type = (DeviceControllerType)values[0]!;
         // we need to do something to make it observable or some shit
         // https://stackoverflow.com/questions/58743/databinding-an-enum-property-to-a-combobox-in-wpf
         // Look at the second answer here.
@@ -37,11 +37,11 @@ public class BindingBitmapConverter : IMultiValueConverter
         if (hat != null)
         {
             var name = Enum.GetName(typeof(StandardButtonType), hat.Type);
-            if (type == DeviceType.Gamepad)
+            if (type == DeviceControllerType.Gamepad)
             {
                 imageValue = $"Others/Xbox360/360_Dpad_{name}.png";
             }
-            else if (type == DeviceType.Guitar)
+            else if (type == DeviceControllerType.Guitar)
             {
                 imageValue = $"GH/{name}.png";
             }
@@ -50,11 +50,11 @@ public class BindingBitmapConverter : IMultiValueConverter
         if (button != null)
         {
             var name = Enum.GetName(typeof(StandardButtonType), button.Type);
-            if (type == DeviceType.Gamepad)
+            if (type == DeviceControllerType.Gamepad)
             {
                 // imageValue = $"GH/{name}.png";
             }
-            else if (type == DeviceType.Guitar)
+            else if (type == DeviceControllerType.Guitar)
             {
                 imageValue = $"GH/{name}.png";
             }
@@ -63,11 +63,11 @@ public class BindingBitmapConverter : IMultiValueConverter
         if (axis != null)
         {
             var name = Enum.GetName(typeof(StandardAxisType), axis.Type);
-            if (type == DeviceType.Gamepad)
+            if (type == DeviceControllerType.Gamepad)
             {
                 // imageValue = $"GH/{name}.png";
             }
-            else if (type == DeviceType.Guitar)
+            else if (type == DeviceControllerType.Guitar)
             {
                 imageValue = $"GH/{name}.png";
             }

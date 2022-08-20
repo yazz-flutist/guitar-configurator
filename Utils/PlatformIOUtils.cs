@@ -28,6 +28,9 @@ namespace GuitarConfiguratorSharp.Utils
         public delegate void TextChangedHandler(string message, bool clear);
 
         public event TextChangedHandler? TextChanged;
+        public delegate void PlatformIOErrorHandler(bool error);
+
+        public event PlatformIOErrorHandler? PlatformIOError;
         public delegate void PlatformIOWorkingHandler(bool working);
 
         public event PlatformIOWorkingHandler? PlatformIOWorking;
@@ -159,6 +162,7 @@ namespace GuitarConfiguratorSharp.Utils
 
         public async Task<int> RunPlatformIO(string? environment, string command, string progress_message, int progress_state, double progress_starting_percentage, double progress_ending_percentage, ConfigurableDevice? device)
         {
+            this.PlatformIOError?.Invoke(false);
             this.PlatformIOWorking?.Invoke(true);
             double percentageStep = (progress_ending_percentage - progress_starting_percentage) / environments.Count;
             double currentProgress = progress_starting_percentage;
@@ -171,15 +175,44 @@ namespace GuitarConfiguratorSharp.Utils
             process.StartInfo.FileName = pioExecutable;
             process.StartInfo.WorkingDirectory = ProjectDir;
             process.StartInfo.EnvironmentVariables["PLATFORMIO_CORE_DIR"] = pioFolder;
+            int sections = 5;
+            bool isUSB = false;
             if (environment != null)
             {
+                if (environment.EndsWith("-usb"))
+                {
+                    this.ProgressChanged?.Invoke($"{progress_message} - Looking for device", progress_state, currentProgress);
+                    currentProgress += percentageStep / sections;
+                    if (device != null)
+                    {
+                        environment = await device.getUploadPort();
+                        if (environment == null)
+                        {
+                            throw new NotImplementedException("unexpected");
+                        }
+                        isUSB = true;
+                    }
+                }
+                percentageStep = (progress_ending_percentage - progress_starting_percentage);
                 var args = $"{command} --environment {environment}";
-                var arduino = device as Arduino;
-                if (arduino != null) {
-                    args += $" --upload-port {arduino.GetSerialPort()}";
+                if (uploading && !isUSB)
+                {
+                    if (environment.Contains("pico"))
+                    {
+                        this.ProgressChanged?.Invoke($"{progress_message} - Looking for device", progress_state, currentProgress);
+                        currentProgress += percentageStep / sections;
+                        sections = 2;
+                    }
+                    if (device != null)
+                    {
+                        var port = await device.getUploadPort();
+                        if (port != null)
+                        {
+                            args += $" --upload-port {port}";
+                        }
+                    }
                 }
                 process.StartInfo.Arguments = args;
-                percentageStep = (progress_ending_percentage - progress_starting_percentage);
             }
             else
             {
@@ -191,6 +224,7 @@ namespace GuitarConfiguratorSharp.Utils
             process.StartInfo.RedirectStandardError = true;
             TextChanged?.Invoke("", true);
             int state = 0;
+            bool done = false;
             process.OutputDataReceived += (sender, e) =>
             {
                 TextChanged?.Invoke(e.Data!, false);
@@ -209,20 +243,25 @@ namespace GuitarConfiguratorSharp.Utils
                     if (matches.Count > 0)
                     {
                         this.ProgressChanged?.Invoke($"{progress_message} - Building", progress_state, currentProgress);
-                        currentProgress += percentageStep / 5;
+                        currentProgress += percentageStep / sections;
                     }
                     if (e.Data.StartsWith("Looking for upload port..."))
                     {
                         this.ProgressChanged?.Invoke($"{progress_message} - Looking for port", progress_state, currentProgress);
-                        currentProgress += percentageStep / 5;
+                        currentProgress += percentageStep / sections;
                         if (environment?.Contains("uno_mega_usb") == true)
                         {
-                            device?.bootloaderUSB();
+                            device?.BootloaderUSB();
                         }
                         else
                         {
-                            device?.bootloader();
+                            device?.Bootloader();
                         }
+                    }
+
+                    if (e.Data.Contains("SUCCESS"))
+                    {
+                        done = true;
                     }
                 }
             };
@@ -234,8 +273,10 @@ namespace GuitarConfiguratorSharp.Utils
             process.BeginOutputReadLine();
             // process.BeginErrorReadLine();
             char[] buffer = new char[1];
+            bool hasError = false;
             while (true)
             {
+                await Task.Delay(100);
                 if (state == 0)
                 {
                     var line = await process.StandardError.ReadLineAsync();
@@ -260,6 +301,18 @@ namespace GuitarConfiguratorSharp.Utils
                         {
                             break;
                         }
+                        if (line.Contains("FAILED"))
+                        {
+                            this.PlatformIOError?.Invoke(true);
+                            hasError = true;
+                            this.ProgressChanged?.Invoke($"{progress_message} - Error", progress_state, currentProgress + percentageStep / 5);
+                            break;
+                        }
+                        if (done)
+                        {
+                            break;
+                        }
+                        TextChanged?.Invoke(line, false);
                     }
                 }
                 else
@@ -270,7 +323,7 @@ namespace GuitarConfiguratorSharp.Utils
                         // process character...for example:
                         if (buffer[0] == '#')
                         {
-                            currentProgress += percentageStep / 50 / 5;
+                            currentProgress += percentageStep / 50 / sections;
                         }
                         if (buffer[0] == 's')
                         {
@@ -294,14 +347,27 @@ namespace GuitarConfiguratorSharp.Utils
             }
 
             await process.WaitForExitAsync();
-            CommandComplete?.Invoke();
-            if (uploading)
+
+            if (isUSB && device != null)
             {
-                this.ProgressChanged?.Invoke($"{progress_message} - Waiting for Device", progress_state, currentProgress);
+                var cdev = device as ConfigurableUSBDevice;
+                if (cdev != null)
+                {
+                    Console.WriteLine("Exiting bootloader...");
+                    await cdev.ExitBootloader();
+                }
             }
-            else
+            CommandComplete?.Invoke();
+            if (!hasError)
             {
-                this.ProgressChanged?.Invoke($"{progress_message} - Done", progress_state, currentProgress);
+                if (uploading)
+                {
+                    this.ProgressChanged?.Invoke($"{progress_message} - Waiting for Device", progress_state, currentProgress);
+                }
+                else
+                {
+                    this.ProgressChanged?.Invoke($"{progress_message} - Done", progress_state, currentProgress);
+                }
             }
             this.PlatformIOWorking?.Invoke(false);
             return process.ExitCode;

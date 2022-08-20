@@ -119,7 +119,7 @@ namespace GuitarConfiguratorSharp.Configuration
                 bool down = button.PinMode == DevicePinMode.BusKeep || button.PinMode == DevicePinMode.VCC;
                 ret += $"gpio_init({button.Pin});";
                 ret += $"gpio_set_dir({button.Pin},false);";
-                ret += $"gpio_set_pulls({button.Pin},{up.ToString().ToLower()},{down.ToString().ToLower()}, false);";
+                ret += $"gpio_set_pulls({button.Pin},{up.ToString().ToLower()},{down.ToString().ToLower()});";
             }
             foreach (var axis in axes)
             {

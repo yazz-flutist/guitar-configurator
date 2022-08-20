@@ -1,9 +1,9 @@
 
-using Device.Net;
-using Usb.Net;
+using LibUsbDotNet;
 using System;
 using GuitarConfiguratorSharp.Utils;
 using GuitarConfiguratorSharp.Configuration;
+using System.Threading.Tasks;
 
 public class PicoDevice : ConfigurableDevice
 {
@@ -19,11 +19,6 @@ public class PicoDevice : ConfigurableDevice
     {
         this.path = path;
         this._config = new DeviceConfiguration(Board.findMicrocontroller(Board.findBoard("pico",0)));
-    }
-
-    public bool IsSameDevice(IDevice device)
-    {
-        return false;
     }
 
     public bool IsSameDevice(PlatformIOPort port)
@@ -46,11 +41,21 @@ public class PicoDevice : ConfigurableDevice
         return $"Pico ({this.path})";
     }
 
-    public void bootloader()
+    public void Bootloader()
     {
     }
 
-    public void bootloaderUSB()
+    public void BootloaderUSB()
     {
+    }
+
+    void ConfigurableDevice.DeviceAdded(ConfigurableDevice device)
+    {
+        
+    }
+
+    public Task<string?> getUploadPort()
+    {
+        return Task.FromResult((string?)path);
     }
 }

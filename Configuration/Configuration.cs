@@ -21,7 +21,7 @@ namespace GuitarConfiguratorSharp.Configuration
         Keyboard_Mouse,
         Midi
     }
-    public enum DeviceType
+    public enum DeviceControllerType
     {
         Gamepad = 1,
         Guitar = 7,
@@ -67,17 +67,17 @@ namespace GuitarConfiguratorSharp.Configuration
         public LedType LedType { get; set; }
         public bool TiltEnabled { get; set; }
         public InputControllerType InputControllerType { get; set; }
-        public DeviceType DeviceType { get; set; }
+        public DeviceControllerType DeviceType { get; set; }
         public EmulationType EmulationType { get; set; }
         public RhythmType RhythmType { get; set; }
         public Microcontroller MicroController { get; set; }
         public TiltOrientation TiltOrientation { get; set; }
 
 
-        public List<Binding> Bindings { get; }
+        public IEnumerable<Binding> Bindings { get; }
 
         [JsonConstructorAttribute]
-        public DeviceConfiguration(Microcontroller microcontroller, List<Binding> bindings, LedType ledType, DeviceType deviceType, EmulationType emulationType, RhythmType rhythmType, bool tiltEnabled)
+        public DeviceConfiguration(Microcontroller microcontroller, IEnumerable<Binding> bindings, LedType ledType, DeviceControllerType deviceType, EmulationType emulationType, RhythmType rhythmType, bool tiltEnabled)
         {
             this.Bindings = bindings;
             this.MicroController = microcontroller;
@@ -93,7 +93,7 @@ namespace GuitarConfiguratorSharp.Configuration
             MicroController = microcontroller;
             this.Bindings = new List<Binding>();
             this.LedType = LedType.None;
-            this.DeviceType = DeviceType.Gamepad;
+            this.DeviceType = DeviceControllerType.Gamepad;
             this.EmulationType = EmulationType.Universal;
             this.RhythmType = RhythmType.GuitarHero;
             this.TiltEnabled = false;
