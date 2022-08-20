@@ -6,10 +6,6 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Text;
-using Avalonia;
-using ReactiveUI;
-using Avalonia.Platform;
-using System.IO.Compression;
 using GuitarConfiguratorSharp.Utils.Github;
 using IniParser;
 using IniParser.Model;
@@ -91,7 +87,7 @@ namespace GuitarConfiguratorSharp.Utils
                     environments.Add(key.SectionName.Split(':')[1]);
                 }
             }
-            File.WriteAllText(Path.Combine(ProjectDir, "platformio.ini"), File.ReadAllText(Path.Combine(ProjectDir, "platformio.ini")).Replace("extra_scripts", "extra_scripts2"));
+            File.WriteAllText(Path.Combine(ProjectDir, "platformio.ini"), File.ReadAllText(Path.Combine(ProjectDir, "platformio.ini")).Replace("post:ardwiino_script_post.py", "post:ardwiino_script_post_tool.py"));
             if (!System.IO.File.Exists(pioExecutablePath))
             {
                 this.ProgressChanged?.Invoke("Extracting Platform.IO Installer", 0, 0);
@@ -217,7 +213,6 @@ namespace GuitarConfiguratorSharp.Utils
             else
             {
                 process.StartInfo.Arguments = $"{command}";
-
             }
             process.StartInfo.UseShellExecute = false;
             process.StartInfo.RedirectStandardOutput = true;
@@ -265,8 +260,6 @@ namespace GuitarConfiguratorSharp.Utils
                     }
                 }
             };
-
-            process.ErrorDataReceived += (sender, e) => TextChanged?.Invoke(e.Data!, false);
 
             process.Start();
 
@@ -347,28 +340,22 @@ namespace GuitarConfiguratorSharp.Utils
             }
 
             await process.WaitForExitAsync();
-
-            if (isUSB && device != null)
-            {
-                var cdev = device as ConfigurableUSBDevice;
-                if (cdev != null)
-                {
-                    Console.WriteLine("Exiting bootloader...");
-                    await cdev.ExitBootloader();
-                }
-            }
+            
             CommandComplete?.Invoke();
             if (!hasError)
             {
                 if (uploading)
                 {
+                    currentProgress = progress_ending_percentage - percentageStep;
                     this.ProgressChanged?.Invoke($"{progress_message} - Waiting for Device", progress_state, currentProgress);
                 }
                 else
                 {
+                    currentProgress = progress_ending_percentage;
                     this.ProgressChanged?.Invoke($"{progress_message} - Done", progress_state, currentProgress);
                 }
             }
+            // TODO:  restart uno when done
             this.PlatformIOWorking?.Invoke(false);
             return process.ExitCode;
         }

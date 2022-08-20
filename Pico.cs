@@ -49,9 +49,9 @@ public class PicoDevice : ConfigurableDevice
     {
     }
 
-    void ConfigurableDevice.DeviceAdded(ConfigurableDevice device)
+    bool ConfigurableDevice.DeviceAdded(ConfigurableDevice device)
     {
-        
+        return false;
     }
 
     public Task<string?> getUploadPort()

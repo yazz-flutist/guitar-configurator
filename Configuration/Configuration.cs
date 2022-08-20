@@ -145,7 +145,7 @@ namespace GuitarConfiguratorSharp.Configuration
                 {
                     compressStream.Write(bytes, 0, bytes.Length);
                 }
-                bytesLine = $"#define CONFIGURATION {{{string.Join(",", outputStream.ToArray().Select(b => b.ToString()))}}}";
+                bytesLine = $"#define CONFIGURATION {{{string.Join(",", outputStream.ToArray().Select(b => "0x"+b.ToString("X")))}}}";
                 bytesLenLine = $"#define CONFIGURATION_LEN {outputStream.ToArray().Length}";
             }
             for (var i = 0; i < lines.Length; i++)
