@@ -6,9 +6,9 @@ using Avalonia;
 using Avalonia.Data.Converters;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
-using GuitarConfiguratorSharp.Configuration;
+using GuitarConfiguratorSharp.NetCore.Configuration;
 
-namespace GuitarConfiguratorSharp;
+namespace GuitarConfiguratorSharp.NetCore;
 
 /// <summary>
 /// <para>
@@ -21,7 +21,7 @@ namespace GuitarConfiguratorSharp;
 /// </summary>
 public class BindingBitmapConverter : IMultiValueConverter
 {
-    public static BindingBitmapConverter Instance = new BindingBitmapConverter();
+    public static BindingBitmapConverter instance = new BindingBitmapConverter();
 
     public object? Convert(IList<object?> values, Type targetType, object? parameter, CultureInfo culture)
     {
@@ -33,19 +33,6 @@ public class BindingBitmapConverter : IMultiValueConverter
         // we need to do something to make it observable or some shit
         // https://stackoverflow.com/questions/58743/databinding-an-enum-property-to-a-combobox-in-wpf
         // Look at the second answer here.
-        var hat = value as GenericControllerHat;
-        if (hat != null)
-        {
-            var name = Enum.GetName(typeof(StandardButtonType), hat.Type);
-            if (type == DeviceControllerType.Gamepad)
-            {
-                imageValue = $"Others/Xbox360/360_Dpad_{name}.png";
-            }
-            else if (type == DeviceControllerType.Guitar)
-            {
-                imageValue = $"GH/{name}.png";
-            }
-        }
         var button = value as GenericControllerButton;
         if (button != null)
         {
@@ -71,18 +58,6 @@ public class BindingBitmapConverter : IMultiValueConverter
             {
                 imageValue = $"GH/{name}.png";
             }
-        }
-
-
-        var xboxButton = value as XboxControllerButton;
-        if (xboxButton != null)
-        {
-
-        }
-        var xboxAxis = value as XboxAxis;
-        if (xboxAxis != null)
-        {
-
         }
         if (imageValue == null)
             return null;

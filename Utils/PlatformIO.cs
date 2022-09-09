@@ -1,21 +1,20 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using ICSharpCode.SharpZipLib.GZip;
 using ICSharpCode.SharpZipLib.Tar;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
-using System.Threading.Tasks;
-using System.Text;
-using GuitarConfiguratorSharp.Utils.Github;
 using IniParser;
 using IniParser.Model;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
 
-namespace GuitarConfiguratorSharp.Utils
+namespace GuitarConfiguratorSharp.NetCore.Utils
 {
 
-    public class PlatformIO
+    public class PlatformIo
     {
         public delegate void ProgressChangedHandler(string message, int state, double progressPercentage);
 
@@ -24,34 +23,34 @@ namespace GuitarConfiguratorSharp.Utils
         public delegate void TextChangedHandler(string message, bool clear);
 
         public event TextChangedHandler? TextChanged;
-        public delegate void PlatformIOErrorHandler(bool error);
+        public delegate void PlatformIoErrorHandler(bool error);
 
-        public event PlatformIOErrorHandler? PlatformIOError;
-        public delegate void PlatformIOWorkingHandler(bool working);
+        public event PlatformIoErrorHandler? PlatformIoError;
+        public delegate void PlatformIoWorkingHandler(bool working);
 
-        public event PlatformIOWorkingHandler? PlatformIOWorking;
-        public delegate void PlatformIOInstalledHandler();
+        public event PlatformIoWorkingHandler? PlatformIoWorking;
+        public delegate void PlatformIoInstalledHandler();
 
-        public event PlatformIOInstalledHandler? PlatformIOInstalled;
+        public event PlatformIoInstalledHandler? PlatformIoInstalled;
         public delegate void CommandCompleteHandler();
 
         public event CommandCompleteHandler? CommandComplete;
 
-        private string pioExecutable;
+        private string _pioExecutable;
         public string ProjectDir { get; }
-        private List<string> environments;
+        private readonly List<string> _environments;
 
-        public bool ready { get; }
+        public bool Ready { get; }
 
-        public PlatformIO()
+        public PlatformIo()
         {
-            environments = new List<string>();
+            _environments = new List<string>();
             string appdataFolder = AssetUtils.GetAppDataFolder();
             string pioFolder = Path.Combine(appdataFolder, "platformio");
             string pioExecutablePath = Path.Combine(pioFolder, "penv", "bin", "platformio");
-            this.pioExecutable = pioExecutablePath;
+            this._pioExecutable = pioExecutablePath;
             this.ProjectDir = Path.Combine(appdataFolder, "firmware");
-            ready = System.IO.Directory.Exists(this.ProjectDir) && System.IO.File.Exists(pioExecutablePath);
+            Ready = System.IO.Directory.Exists(this.ProjectDir) && System.IO.File.Exists(pioExecutablePath);
         }
 
         public async Task RevertFirmware()
@@ -66,14 +65,14 @@ namespace GuitarConfiguratorSharp.Utils
             await AssetUtils.ExtractZip("firmware.zip", firmwareZipPath, ProjectDir);
         }
 
-        public async Task InitialisePlatformIO()
+        public async Task InitialisePlatformIo()
         {
             string appdataFolder = AssetUtils.GetAppDataFolder();
             string pioFolder = Path.Combine(appdataFolder, "platformio");
             string installerZipPath = Path.Combine(pioFolder, "installer.zip");
             string installerPath = Path.Combine(pioFolder, "installer");
             string pioExecutablePath = Path.Combine(pioFolder, "penv", "bin", "platformio");
-            this.pioExecutable = pioExecutablePath;
+            this._pioExecutable = pioExecutablePath;
 
             // On startup, reinstall the firmware, this will make sure that an update goes out, and also makes sure that the firmware is clean.
             await RevertFirmware();
@@ -84,7 +83,7 @@ namespace GuitarConfiguratorSharp.Utils
             {
                 if (key.SectionName.StartsWith("env:"))
                 {
-                    environments.Add(key.SectionName.Split(':')[1]);
+                    _environments.Add(key.SectionName.Split(':')[1]);
                 }
             }
             File.WriteAllText(Path.Combine(ProjectDir, "platformio.ini"), File.ReadAllText(Path.Combine(ProjectDir, "platformio.ini")).Replace("post:ardwiino_script_post.py", "post:ardwiino_script_post_tool.py"));
@@ -113,31 +112,31 @@ namespace GuitarConfiguratorSharp.Utils
                 await installerProcess.WaitForExitAsync();
                 System.IO.File.Delete(installerZipPath);
                 System.IO.Directory.Delete(installerPath, true);
-                this.PlatformIOInstalled?.Invoke();
-                await RunPlatformIO(null, "run", "Building packages", 2, 20, 90, null).ConfigureAwait(false);
-                await RunPlatformIO(null, "system prune -f", "Cleaning up", 2, 90, 90, null).ConfigureAwait(false);
+                this.PlatformIoInstalled?.Invoke();
+                await RunPlatformIo(null, "run", "Building packages", 2, 20, 90, null).ConfigureAwait(false);
+                await RunPlatformIo(null, "system prune -f", "Cleaning up", 2, 90, 90, null).ConfigureAwait(false);
             }
             else
             {
 
-                this.PlatformIOInstalled?.Invoke();
+                this.PlatformIoInstalled?.Invoke();
             }
             this.ProgressChanged?.Invoke("Ready", 2, 100);
-            this.PlatformIOWorking?.Invoke(false);
+            this.PlatformIoWorking?.Invoke(false);
         }
 
-        public async Task<PlatformIOPort[]> GetPorts()
+        public async Task<PlatformIoPort[]?> GetPorts()
         {
-            if (pioExecutable == null)
+            if (_pioExecutable == null)
             {
-                return new PlatformIOPort[] { };
+                return new PlatformIoPort[] { };
             }
 
             string appdataFolder = AssetUtils.GetAppDataFolder();
             string pioFolder = Path.Combine(appdataFolder, "platformio");
             Process process = new Process();
             process.EnableRaisingEvents = true;
-            process.StartInfo.FileName = pioExecutable;
+            process.StartInfo.FileName = _pioExecutable;
             process.StartInfo.WorkingDirectory = ProjectDir;
             process.StartInfo.EnvironmentVariables["PLATFORMIO_CORE_DIR"] = pioFolder;
 
@@ -151,57 +150,59 @@ namespace GuitarConfiguratorSharp.Utils
             process.Start();
             string output = process.StandardOutput.ReadToEnd();
             await process.WaitForExitAsync();
-
-            return PlatformIOPort.FromJson(output);
+            if (output != "") {
+                return PlatformIoPort.FromJson(output);
+            }
+            return null;
 
         }
 
-        public async Task<int> RunPlatformIO(string? environment, string command, string progress_message, int progress_state, double progress_starting_percentage, double progress_ending_percentage, ConfigurableDevice? device)
+        public async Task<int> RunPlatformIo(string? environment, string command, string progressMessage, int progressState, double progressStartingPercentage, double progressEndingPercentage, IConfigurableDevice? device)
         {
-            this.PlatformIOError?.Invoke(false);
-            this.PlatformIOWorking?.Invoke(true);
-            double percentageStep = (progress_ending_percentage - progress_starting_percentage) / environments.Count;
-            double currentProgress = progress_starting_percentage;
+            this.PlatformIoError?.Invoke(false);
+            this.PlatformIoWorking?.Invoke(true);
+            double percentageStep = (progressEndingPercentage - progressStartingPercentage) / _environments.Count;
+            double currentProgress = progressStartingPercentage;
             bool building = environment == null && command == "run";
             bool uploading = environment != null && command.StartsWith("run");
             string appdataFolder = AssetUtils.GetAppDataFolder();
             string pioFolder = Path.Combine(appdataFolder, "platformio");
             Process process = new Process();
             process.EnableRaisingEvents = true;
-            process.StartInfo.FileName = pioExecutable;
+            process.StartInfo.FileName = _pioExecutable;
             process.StartInfo.WorkingDirectory = ProjectDir;
             process.StartInfo.EnvironmentVariables["PLATFORMIO_CORE_DIR"] = pioFolder;
             int sections = 5;
-            bool isUSB = false;
+            bool isUsb = false;
             if (environment != null)
             {
                 if (environment.EndsWith("-usb"))
                 {
-                    this.ProgressChanged?.Invoke($"{progress_message} - Looking for device", progress_state, currentProgress);
+                    this.ProgressChanged?.Invoke($"{progressMessage} - Looking for device", progressState, currentProgress);
                     currentProgress += percentageStep / sections;
                     if (device != null)
                     {
-                        environment = await device.getUploadPort();
+                        environment = await device.GetUploadPort();
                         if (environment == null)
                         {
                             throw new NotImplementedException("unexpected");
                         }
-                        isUSB = true;
+                        isUsb = true;
                     }
                 }
-                percentageStep = (progress_ending_percentage - progress_starting_percentage);
+                percentageStep = (progressEndingPercentage - progressStartingPercentage);
                 var args = $"{command} --environment {environment}";
-                if (uploading && !isUSB)
+                if (uploading && !isUsb)
                 {
                     if (environment.Contains("pico"))
                     {
-                        this.ProgressChanged?.Invoke($"{progress_message} - Looking for device", progress_state, currentProgress);
+                        this.ProgressChanged?.Invoke($"{progressMessage} - Looking for device", progressState, currentProgress);
                         currentProgress += percentageStep / sections;
                         sections = 2;
                     }
                     if (device != null)
                     {
-                        var port = await device.getUploadPort();
+                        var port = await device.GetUploadPort();
                         if (port != null)
                         {
                             args += $" --upload-port {port}";
@@ -228,7 +229,7 @@ namespace GuitarConfiguratorSharp.Utils
                     var matches = Regex.Matches(e.Data, @"Processing (.+?) \(.+\)");
                     if (matches.Count > 0)
                     {
-                        this.ProgressChanged?.Invoke($"{progress_message} - {matches[0].Groups[1].Value}", progress_state, currentProgress);
+                        this.ProgressChanged?.Invoke($"{progressMessage} - {matches[0].Groups[1].Value}", progressState, currentProgress);
                         currentProgress += percentageStep;
                     }
                 }
@@ -237,16 +238,16 @@ namespace GuitarConfiguratorSharp.Utils
                     var matches = Regex.Matches(e.Data, @"Processing (.+?) \(.+\)");
                     if (matches.Count > 0)
                     {
-                        this.ProgressChanged?.Invoke($"{progress_message} - Building", progress_state, currentProgress);
+                        this.ProgressChanged?.Invoke($"{progressMessage} - Building", progressState, currentProgress);
                         currentProgress += percentageStep / sections;
                     }
                     if (e.Data.StartsWith("Looking for upload port..."))
                     {
-                        this.ProgressChanged?.Invoke($"{progress_message} - Looking for port", progress_state, currentProgress);
+                        this.ProgressChanged?.Invoke($"{progressMessage} - Looking for port", progressState, currentProgress);
                         currentProgress += percentageStep / sections;
                         if (environment?.Contains("uno_mega_usb") == true)
                         {
-                            device?.BootloaderUSB();
+                            device?.BootloaderUsb();
                         }
                         else
                         {
@@ -269,7 +270,6 @@ namespace GuitarConfiguratorSharp.Utils
             bool hasError = false;
             while (true)
             {
-                await Task.Delay(100);
                 if (state == 0)
                 {
                     var line = await process.StandardError.ReadLineAsync();
@@ -277,17 +277,17 @@ namespace GuitarConfiguratorSharp.Utils
                     {
                         if (line.Contains("AVR device initialized and ready to accept instructions"))
                         {
-                            this.ProgressChanged?.Invoke($"{progress_message} - Reading Settings", progress_state, currentProgress);
+                            this.ProgressChanged?.Invoke($"{progressMessage} - Reading Settings", progressState, currentProgress);
                             state = 1;
                         }
                         if (line.Contains("writing flash"))
                         {
-                            this.ProgressChanged?.Invoke($"{progress_message} - Uploading", progress_state, currentProgress);
+                            this.ProgressChanged?.Invoke($"{progressMessage} - Uploading", progressState, currentProgress);
                             state = 2;
                         }
                         if (line.Contains("reading on-chip flash data"))
                         {
-                            this.ProgressChanged?.Invoke($"{progress_message} - Verifying", progress_state, currentProgress);
+                            this.ProgressChanged?.Invoke($"{progressMessage} - Verifying", progressState, currentProgress);
                             state = 3;
                         }
                         if (line.Contains("avrdude done.  Thank you."))
@@ -296,9 +296,9 @@ namespace GuitarConfiguratorSharp.Utils
                         }
                         if (line.Contains("FAILED"))
                         {
-                            this.PlatformIOError?.Invoke(true);
+                            this.PlatformIoError?.Invoke(true);
                             hasError = true;
-                            this.ProgressChanged?.Invoke($"{progress_message} - Error", progress_state, currentProgress + percentageStep / 5);
+                            this.ProgressChanged?.Invoke($"{progressMessage} - Error", progressState, currentProgress + percentageStep / 5);
                             break;
                         }
                         if (done)
@@ -306,6 +306,10 @@ namespace GuitarConfiguratorSharp.Utils
                             break;
                         }
                         TextChanged?.Invoke(line, false);
+                    }
+                    else
+                    {
+                        await Task.Delay(1);
                     }
                 }
                 else
@@ -325,38 +329,38 @@ namespace GuitarConfiguratorSharp.Utils
                         }
                         if (state == 1)
                         {
-                            this.ProgressChanged?.Invoke($"{progress_message} - Reading Settings", progress_state, currentProgress);
+                            this.ProgressChanged?.Invoke($"{progressMessage} - Reading Settings", progressState, currentProgress);
                         }
                         if (state == 2)
                         {
-                            this.ProgressChanged?.Invoke($"{progress_message} - Uploading", progress_state, currentProgress);
+                            this.ProgressChanged?.Invoke($"{progressMessage} - Uploading", progressState, currentProgress);
                         }
                         if (state == 3)
                         {
-                            this.ProgressChanged?.Invoke($"{progress_message} - Verifying", progress_state, currentProgress);
+                            this.ProgressChanged?.Invoke($"{progressMessage} - Verifying", progressState, currentProgress);
                         }
                     }
                 }
             }
 
             await process.WaitForExitAsync();
-            
+
             CommandComplete?.Invoke();
             if (!hasError)
             {
                 if (uploading)
                 {
-                    currentProgress = progress_ending_percentage - percentageStep;
-                    this.ProgressChanged?.Invoke($"{progress_message} - Waiting for Device", progress_state, currentProgress);
+                    currentProgress = progressEndingPercentage;
+                    this.ProgressChanged?.Invoke($"{progressMessage} - Waiting for Device", progressState, currentProgress);
                 }
                 else
                 {
-                    currentProgress = progress_ending_percentage;
-                    this.ProgressChanged?.Invoke($"{progress_message} - Done", progress_state, currentProgress);
+                    currentProgress = progressEndingPercentage;
+                    this.ProgressChanged?.Invoke($"{progressMessage} - Done", progressState, currentProgress);
                 }
             }
             // TODO:  restart uno when done
-            this.PlatformIOWorking?.Invoke(false);
+            this.PlatformIoWorking?.Invoke(false);
             return process.ExitCode;
         }
         private async Task<string?> FindPython()

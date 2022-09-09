@@ -1,83 +1,39 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
-using Avalonia.Media;
-using GuitarConfiguratorSharp.Utils;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.IO.Compression;
-using System.Text;
 using Dahomey.Json;
 using Dahomey.Json.Serialization.Conventions;
+using GuitarConfiguratorSharp.NetCore.Configuration.Microcontroller;
+using GuitarConfiguratorSharp.NetCore.Configuration.Neck;
+using GuitarConfiguratorSharp.NetCore.Configuration.PS2;
+using GuitarConfiguratorSharp.NetCore.Configuration.Wii;
+using GuitarConfiguratorSharp.NetCore.Utils;
 
-namespace GuitarConfiguratorSharp.Configuration
+namespace GuitarConfiguratorSharp.NetCore.Configuration
 {
-    public enum EmulationType
-    {
-        Universal,
-        XInput,
-        Keyboard_Mouse,
-        Midi
-    }
-    public enum DeviceControllerType
-    {
-        Gamepad = 1,
-        Guitar = 7,
-        Drum = 9,
-        TurnTable = 23
-    }
-    public enum RhythmType
-    {
-        GuitarHero,
-        RockBand,
-        Live
-    }
-    public enum InputControllerType
-    {
-        None,
-        Wii,
-        Direct,
-        PS2,
-        USB_Passthrough
-    }
-    public enum TiltType
-    {
-        None,
-        MPU_6050,
-        Digital_Mercury,
-        Analogue,
-        ADXL_3xx
-    }
-    public enum TiltOrientation
-    {
-        X,
-        Y,
-        Z
-    }
-    public enum LedType
-    {
-        None,
-        APA102
-    }
     public class DeviceConfiguration
     {
 
         public LedType LedType { get; set; }
         public bool TiltEnabled { get; set; }
+        public bool XInputOnWindows {get; set;}
         public InputControllerType InputControllerType { get; set; }
         public DeviceControllerType DeviceType { get; set; }
         public EmulationType EmulationType { get; set; }
         public RhythmType RhythmType { get; set; }
-        public Microcontroller MicroController { get; set; }
+        public Microcontroller.Microcontroller MicroController { get; set; }
         public TiltOrientation TiltOrientation { get; set; }
 
 
         public IEnumerable<Binding> Bindings { get; }
 
-        [JsonConstructorAttribute]
-        public DeviceConfiguration(Microcontroller microcontroller, IEnumerable<Binding> bindings, LedType ledType, DeviceControllerType deviceType, EmulationType emulationType, RhythmType rhythmType, bool tiltEnabled)
+        [JsonConstructor]
+        public DeviceConfiguration(Microcontroller.Microcontroller microcontroller, IEnumerable<Binding> bindings, LedType ledType, DeviceControllerType deviceType, EmulationType emulationType, RhythmType rhythmType, bool tiltEnabled, bool xInputOnWindows)
         {
             this.Bindings = bindings;
             this.MicroController = microcontroller;
@@ -86,9 +42,10 @@ namespace GuitarConfiguratorSharp.Configuration
             this.EmulationType = emulationType;
             this.RhythmType = rhythmType;
             this.TiltEnabled = tiltEnabled;
+            this.XInputOnWindows = xInputOnWindows;
         }
 
-        public DeviceConfiguration(Microcontroller microcontroller)
+        public DeviceConfiguration(Microcontroller.Microcontroller microcontroller)
         {
             MicroController = microcontroller;
             this.Bindings = new List<Binding>();
@@ -97,45 +54,43 @@ namespace GuitarConfiguratorSharp.Configuration
             this.EmulationType = EmulationType.Universal;
             this.RhythmType = RhythmType.GuitarHero;
             this.TiltEnabled = false;
+            this.XInputOnWindows = false;
         }
 
-        public static JsonSerializerOptions getJSONOptions(Microcontroller? controller)
+        public static JsonSerializerOptions GetJsonOptions(Microcontroller.Microcontroller? controller)
         {
 
             JsonSerializerOptions options = new JsonSerializerOptions();
             options.Converters.Add(new MicrocontrollerJsonConverter(controller));
             options.SetupExtensions();
             DiscriminatorConventionRegistry registry = options.GetDiscriminatorConventionRegistry();
-            registry.RegisterType<DirectGHFiveTarBarAnalog>();
-            registry.RegisterType<DirectGHFiveTarBarButton>();
-            registry.RegisterType<DirectGHWTBarAnalog>();
-            registry.RegisterType<DirectGHWTBarButton>();
+            registry.RegisterType<DirectGhFiveTarBarAnalog>();
+            registry.RegisterType<DirectGhFiveTarBarButton>();
+            registry.RegisterType<DirectGhwtBarAnalog>();
+            registry.RegisterType<DirectGhwtBarButton>();
             registry.RegisterType<AnalogToDigital>();
             registry.RegisterType<DigitalToAnalog>();
-            registry.RegisterType<XboxControllerButton>();
             registry.RegisterType<GenericControllerButton>();
-            registry.RegisterType<GenericControllerHat>();
             registry.RegisterType<GenericAxis>();
-            registry.RegisterType<XboxAxis>();
             registry.RegisterType<MouseAxis>();
             registry.RegisterType<DirectDigital>();
             registry.RegisterType<DirectAnalog>();
-            registry.RegisterType<PS2Button>();
-            registry.RegisterType<PS2Analog>();
+            registry.RegisterType<Ps2Button>();
+            registry.RegisterType<Ps2Analog>();
             registry.RegisterType<WiiButton>();
             registry.RegisterType<WiiAnalog>();
             return options;
         }
 
-        public void generate(PlatformIO pio)
+        public void Generate(PlatformIo pio)
         {
-            var hasWii = Bindings.FilterCast<Binding, WiiInput>().Any();
-            var hasPS2 = Bindings.FilterCast<Binding, PS2Input>().Any();
-            var hasSPI = hasPS2 || LedType == LedType.APA102;
+            var hasWii = Bindings.FilterCast<Binding, IWiiInput>().Any();
+            var hasPs2 = Bindings.FilterCast<Binding, IPs2Input>().Any();
+            var hasSpi = hasPs2 || LedType == LedType.APA102;
             var hasI2C = hasWii;
             string configFile = Path.Combine(pio.ProjectDir, "include", "config.h");
             var lines = File.ReadAllLines(configFile);
-            var json = JsonSerializer.Serialize(this, getJSONOptions(MicroController));
+            var json = JsonSerializer.Serialize(this, GetJsonOptions(MicroController));
             var bytes = Encoding.UTF8.GetBytes(json);
             var bytesLine = "";
             var bytesLenLine = "";
@@ -151,9 +106,17 @@ namespace GuitarConfiguratorSharp.Configuration
             for (var i = 0; i < lines.Length; i++)
             {
                 var line = lines[i];
-                if (line.StartsWith("#define TICK "))
+                if (line.StartsWith("#define WINDOWS_USES_XINPUT "))
                 {
-                    lines[i] = $"#define TICK {generateTick()}";
+                    lines[i] = $"#define WINDOWS_USES_XINPUT {XInputOnWindows.ToString().ToLower()}";
+                }
+                if (line.StartsWith("#define TICK_PS3 "))
+                {
+                    lines[i] = $"#define TICK_PS3 {GenerateTick(false)}";
+                }
+                if (line.StartsWith("#define TICK_XINPUT "))
+                {
+                    lines[i] = $"#define TICK_XINPUT {GenerateTick(true)}";
                 }
                 if (line.StartsWith("#define ADC_COUNT "))
                 {
@@ -182,25 +145,24 @@ namespace GuitarConfiguratorSharp.Configuration
                 if (line.StartsWith("#define ADC_PINS "))
                 {
                     // Sort by pin index, and then map to adc number and turn into an array
-                    lines[i] = $"#define ADC_PINS {{{String.Join(",", Bindings.FilterCast<Binding, DirectAnalog>().OrderBy(s => s.Pin).Select(s => MicroController.getChannel(s.Pin).ToString()))}}}";
+                    lines[i] = $"#define ADC_PINS {{{String.Join(",", Bindings.FilterCast<Binding, DirectAnalog>().OrderBy(s => s.Pin).Select(s => MicroController.GetChannel(s.Pin).ToString()))}}}";
                 }
                 if (line.StartsWith("#define PIN_INIT "))
                 {
-                    // Sort by pin index, and then map to adc number and turn into an array
-                    lines[i] = $"#define PIN_INIT {MicroController.generateInit(Bindings)}";
+                    lines[i] = $"#define PIN_INIT {MicroController.GenerateInit(Bindings)}";
                 }
                 if (MicroController is Pico)
                 {
                     if (line.StartsWith("#define SKIP_MASK_PICO "))
                     {
-                        lines[i] = $"#define SKIP_MASK_PICO {MicroController.generateSkip(hasSPI, hasI2C)}";
+                        lines[i] = $"#define SKIP_MASK_PICO {MicroController.GenerateSkip(hasSpi, hasI2C)}";
                     }
                 }
                 else
                 {
                     if (line.StartsWith("#define SKIP_MASK_AVR "))
                     {
-                        lines[i] = $"#define SKIP_MASK_AVR {MicroController.generateSkip(hasSPI, hasI2C)}";
+                        lines[i] = $"#define SKIP_MASK_AVR {MicroController.GenerateSkip(hasSpi, hasI2C)}";
                     }
                 }
                 if (line.StartsWith("#define CONFIGURATION_LEN "))
@@ -213,44 +175,44 @@ namespace GuitarConfiguratorSharp.Configuration
                 }
                 else if (line.StartsWith("#define ARDWIINO_BOARD "))
                 {
-                    lines[i] = $"#define ARDWIINO_BOARD \"{MicroController.Board.ardwiinoName}\"";
+                    lines[i] = $"#define ARDWIINO_BOARD \"{MicroController.Board.ArdwiinoName}\"";
                 }
             }
             // TODO: generate a init define too
             // TODO: theres a bunch of different inits littered around the place
             File.WriteAllLines(configFile, lines);
         }
-        public class MicrocontrollerJsonConverter : JsonConverter<Microcontroller>
+        public class MicrocontrollerJsonConverter : JsonConverter<Microcontroller.Microcontroller>
         {
-            private Microcontroller? CurrentController;
+            private readonly Microcontroller.Microcontroller? _currentController;
 
-            public MicrocontrollerJsonConverter(Microcontroller? currentController)
+            public MicrocontrollerJsonConverter(Microcontroller.Microcontroller? currentController)
             {
-                CurrentController = currentController;
+                _currentController = currentController;
             }
 
-            public override Microcontroller Read(
+            public override Microcontroller.Microcontroller Read(
                 ref Utf8JsonReader reader,
                 Type typeToConvert,
-                JsonSerializerOptions options) => CurrentController!;
+                JsonSerializerOptions options) => _currentController!;
 
             public override void Write(
                 Utf8JsonWriter writer,
-                Microcontroller dateTimeValue,
+                Microcontroller.Microcontroller dateTimeValue,
                 JsonSerializerOptions options) => writer.WriteNullValue();
 
         }
-        public string generateTick()
+        public string GenerateTick(bool xbox)
         {
             // TODO: we should probably add a CLASSIC_CONTROLLER_HIGH_RES for any CLASSIC_CONTROLLER inputs
             var ps2Bindings = Bindings
                 .Where(binding => binding.InputType == InputControllerType.PS2)
-                .FilterCast<Binding, PS2Input>()
-                .GroupBy(binding => binding.ps2Controller)
+                .FilterCast<Binding, IPs2Input>()
+                .GroupBy(binding => binding.Ps2Controller)
                 .ToList();
             var wiiBindings = Bindings
                 .Where(binding => binding.InputType == InputControllerType.Wii)
-                .FilterCast<Binding, WiiInput>()
+                .FilterCast<Binding, IWiiInput>()
                 .GroupBy(binding => binding.WiiController)
                 .ToList();
             var directBindings = Bindings.Where(binding => binding.InputType == InputControllerType.Direct);
@@ -259,51 +221,57 @@ namespace GuitarConfiguratorSharp.Configuration
             {
                 ret += string.Join(" ", ps2Bindings.Select(grouping =>
                 {
-                    var ret = "";
-                    var buttons = grouping.FilterCast<PS2Input, Button>();
-                    var axes = grouping.FilterCast<PS2Input, Axis>();
+                    var retPs2 = "";
+                    var buttons = grouping.FilterCast<IPs2Input, Button>().ToList();
+                    var axes = grouping.FilterCast<IPs2Input, Axis>().ToList();
                     if (buttons.Any())
                     {
-                        ret += $"case {PS2Input.caseStatements[grouping.Key]}: {generateButtons(buttons, MicroController)} break;";
+                        retPs2 += $"case {IPs2Input.caseStatements[grouping.Key]}: {GenerateButtons(buttons, MicroController, xbox)} break;";
                     }
                     if (axes.Any())
                     {
-                        ret += $"case {PS2Input.caseStatements[grouping.Key]}: {generateAnalogs(axes, MicroController)} break;";
+                        retPs2 += $"case {IPs2Input.caseStatements[grouping.Key]}: {GenerateAnalogs(axes, MicroController, xbox)} break;";
                     }
-                    return ret;
+                    return retPs2;
                 }));
             }
             if (wiiBindings.Any())
             {
                 ret += string.Join(" ", wiiBindings.Select(grouping =>
                 {
-                    var ret = "";
-                    var buttons = grouping.FilterCast<WiiInput, Button>();
-                    var axes = grouping.FilterCast<WiiInput, Axis>();
-                    if (buttons.Any())
+                    var retWii = "";
+                    var buttons = grouping.FilterCast<IWiiInput, Button>();
+                    var axes = grouping.FilterCast<IWiiInput, Axis>();
+                    var enumerable1 = buttons.ToList();
+                    if (enumerable1.Any())
                     {
-                        ret += $" case {WiiInput.caseStatements[grouping.Key]}: {generateButtons(buttons, MicroController)} break;";
+                        retWii += $" case {IWiiInput.caseStatements[grouping.Key]}: {GenerateButtons(enumerable1, MicroController, xbox)} break;";
                     }
-                    if (axes.Any())
+
+                    var axisEnumerable = axes.ToList();
+                    if (axisEnumerable.Any())
                     {
-                        ret += $" case {WiiInput.caseStatements[grouping.Key]}: {generateAnalogs(axes, MicroController)} break;";
+                        retWii += $" case {IWiiInput.caseStatements[grouping.Key]}: {GenerateAnalogs(axisEnumerable, MicroController, xbox)} break;";
                     }
-                    return ret;
+                    return retWii;
                 }));
             }
-            if (directBindings.Any())
+
+            var enumerable = directBindings.ToList();
+            if (enumerable.Any())
             {
-                ret += generateAnalogs(directBindings.FilterCast<Binding, Axis>(), MicroController);
-                ret += generateButtons(directBindings.FilterCast<Binding, Button>(), MicroController);
+                ret += GenerateAnalogs(enumerable.FilterCast<Binding, Axis>(), MicroController, xbox);
+                ret += GenerateButtons(enumerable.FilterCast<Binding, Button>(), MicroController, xbox);
             }
             return ret;
         }
 
-        private string generateAnalogs(IEnumerable<Axis> axes, Microcontroller controller)
+        private string GenerateAnalogs(IEnumerable<Axis> axes, Microcontroller.Microcontroller controller, bool xbox)
         {
-            return string.Join(" ", axes.Select(axis => axis.Type.generate() + " = " + axis.generate(axes.FilterCast<Axis, Binding>()).Replace("{self}", axis.Type.generate()) + ";")) + " ";
+            var axisEnumerable = axes.ToList();
+            return string.Join(" ", axisEnumerable.Select(axis => axis.Type.Generate(xbox) + " = " + axis.Generate(axisEnumerable.FilterCast<Axis, Binding>(), xbox).Replace("{self}", axis.Type.Generate(xbox)) + ";")) + " ";
         }
-        private string generateButtons(IEnumerable<Button> buttons, Microcontroller controller)
+        private string GenerateButtons(IEnumerable<Button> buttons, Microcontroller.Microcontroller controller, bool xbox)
         {
             return string.Join(
                 " ",
@@ -311,16 +279,16 @@ namespace GuitarConfiguratorSharp.Configuration
                     .Select(buttonsByType =>
                     {
                         var output = buttonsByType.Key;
-                        var buttonList = buttonsByType.OrderByDescending(button => button.Type.index()).ToList();
+                        var buttonList = buttonsByType.OrderByDescending(button => button.Type.Index(xbox)).ToList();
                         string ret = "";
                         int i = 0;
                         // TODO: if debounce is combined, then both strums use the same i for checking (but the first strum does not decrement, only the second.)
                         foreach (var button in buttonList)
                         {
                             int debounce = button.Debounce;
-                            var generated = button.generate(Bindings);
-                            var outputBit = button.Type.index();
-                            var outputVar = button.Type is GenericControllerHat ? "report->hat" : "report->buttons";
+                            var generated = button.Generate(Bindings, xbox);
+                            var outputVar = button.Type.Generate(xbox);
+                            var outputBit = button.Type.Index(xbox);
                             if (debounce == 0)
                             {
                                 ret += $"{outputVar} |= ({generated} << {outputBit});";

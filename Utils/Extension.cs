@@ -1,12 +1,11 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace GuitarConfiguratorSharp.Utils
+namespace GuitarConfiguratorSharp.NetCore.Utils
 {
     public static class Extension
     {
-        public static IEnumerable<O> FilterCast<T,O>(this IEnumerable<T> o) where T : class where O : class
-            => o.Select(x => x as O).Where(x => x != null)!;
+        public static IEnumerable<TO> FilterCast<T,TO>(this IEnumerable<T> o) where T : class where TO : class
+            => o.Select(x => x as TO).Where(x => x != null)!;
     }
 }

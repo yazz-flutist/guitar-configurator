@@ -1,17 +1,16 @@
-
 using System;
 using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace GuitarConfiguratorSharp.Utils
+namespace GuitarConfiguratorSharp.NetCore.Utils
 {
     public class HttpClientDownloadWithProgress : IDisposable
     {
         private readonly string _downloadUrl;
         private readonly string _destinationFilePath;
 
-        private HttpClient _httpClient;
+        private readonly HttpClient _httpClient;
 
         public delegate void ProgressChangedHandler(long? totalFileSize, long totalBytesDownloaded, double? progressPercentage);
 
