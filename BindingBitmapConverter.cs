@@ -7,6 +7,8 @@ using Avalonia.Data.Converters;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using GuitarConfiguratorSharp.NetCore.Configuration;
+using GuitarConfiguratorSharp.NetCore.Configuration.Types;
+using GuitarConfiguratorSharp.NetCore.ViewModels;
 
 namespace GuitarConfiguratorSharp.NetCore;
 
@@ -25,40 +27,27 @@ public class BindingBitmapConverter : IMultiValueConverter
 
     public object? Convert(IList<object?> values, Type targetType, object? parameter, CultureInfo culture)
     {
+        Console.WriteLine(values[0]);
+        Console.WriteLine(values[1]);
         if (values[1] is Avalonia.UnsetValueType || values[0] is Avalonia.UnsetValueType)
             return null;
         string? imageValue = null;
-        object value = values[1]!;
-        DeviceControllerType type = (DeviceControllerType)values[0]!;
+        DeviceControllerType type = (DeviceControllerType) values[0];
+        String name = (string) values[1]!;
         // we need to do something to make it observable or some shit
         // https://stackoverflow.com/questions/58743/databinding-an-enum-property-to-a-combobox-in-wpf
         // Look at the second answer here.
-        var button = value as GenericControllerButton;
-        if (button != null)
+        Console.WriteLine(type);
+        Console.WriteLine(name);
+        if (type == DeviceControllerType.Gamepad)
         {
-            var name = Enum.GetName(typeof(StandardButtonType), button.Type);
-            if (type == DeviceControllerType.Gamepad)
-            {
-                // imageValue = $"GH/{name}.png";
-            }
-            else if (type == DeviceControllerType.Guitar)
-            {
-                imageValue = $"GH/{name}.png";
-            }
+            // imageValue = $"GH/{name}.png";
         }
-        var axis = value as GenericAxis;
-        if (axis != null)
+        else if (type == DeviceControllerType.Guitar)
         {
-            var name = Enum.GetName(typeof(StandardAxisType), axis.Type);
-            if (type == DeviceControllerType.Gamepad)
-            {
-                // imageValue = $"GH/{name}.png";
-            }
-            else if (type == DeviceControllerType.Guitar)
-            {
-                imageValue = $"GH/{name}.png";
-            }
+            imageValue = $"GH/{name}.png";
         }
+
         if (imageValue == null)
             return null;
 
@@ -70,7 +59,6 @@ public class BindingBitmapConverter : IMultiValueConverter
         var asset = assets!.Open(uri);
 
         return new Bitmap(asset);
-
     }
 
     public object[] ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
