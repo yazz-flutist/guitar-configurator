@@ -8,7 +8,7 @@ public interface IInput
     public IReadOnlyList<string> RequiredDefines();
     public string Generate(bool xbox, Microcontroller.Microcontroller controller);
 
-    public bool IsAnalog();
+    public bool IsAnalog { get; }
 
     public bool RequiresSpi();
 

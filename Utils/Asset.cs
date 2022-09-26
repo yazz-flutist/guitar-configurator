@@ -4,7 +4,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils;
 
 public partial class Asset
 {
-    public Uri Url { get; set; } = new Uri("https://www.github.com");
+    public Uri Url { get; set; } = new("https://www.github.com");
 
     public long Id { get; set; } = 0;
 
@@ -14,7 +14,7 @@ public partial class Asset
 
     public string Label { get; set; } = "";
 
-    public Author Uploader { get; set; } = new Author();
+    public Author Uploader { get; set; } = new();
 
     public string ContentType { get; set; } = "";
 
@@ -24,9 +24,9 @@ public partial class Asset
 
     public long DownloadCount { get; set; } = 0;
 
-    public DateTimeOffset CreatedAt { get; set; } = new DateTimeOffset();
+    public DateTimeOffset CreatedAt { get; set; } = new();
 
-    public DateTimeOffset UpdatedAt { get; set; } = new DateTimeOffset();
+    public DateTimeOffset UpdatedAt { get; set; } = new();
 
-    public Uri BrowserDownloadUrl { get; set; } = new Uri("https://www.github.com");
+    public Uri BrowserDownloadUrl { get; set; } = new("https://www.github.com");
 }

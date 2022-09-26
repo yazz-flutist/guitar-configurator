@@ -4,7 +4,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils;
 
 public partial class Reactions
 {
-    public Uri Url { get; set; } = new Uri("https://www.github.com");
+    public Uri Url { get; set; } = new("https://www.github.com");
 
     public long TotalCount { get; set; } = 0;
 

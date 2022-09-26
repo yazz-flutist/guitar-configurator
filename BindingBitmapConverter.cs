@@ -23,25 +23,18 @@ namespace GuitarConfiguratorSharp.NetCore;
 /// </summary>
 public class BindingBitmapConverter : IMultiValueConverter
 {
-    public static BindingBitmapConverter instance = new BindingBitmapConverter();
+    public static BindingBitmapConverter instance = new();
 
     public object? Convert(IList<object?> values, Type targetType, object? parameter, CultureInfo culture)
     {
-        Console.WriteLine(values[0]);
-        Console.WriteLine(values[1]);
-        if (values[1] is Avalonia.UnsetValueType || values[0] is Avalonia.UnsetValueType)
+        if (values[1] is UnsetValueType || values[0] is UnsetValueType)
             return null;
         string? imageValue = null;
         DeviceControllerType type = (DeviceControllerType) values[0];
         String name = (string) values[1]!;
-        // we need to do something to make it observable or some shit
-        // https://stackoverflow.com/questions/58743/databinding-an-enum-property-to-a-combobox-in-wpf
-        // Look at the second answer here.
-        Console.WriteLine(type);
-        Console.WriteLine(name);
         if (type == DeviceControllerType.Gamepad)
         {
-            // imageValue = $"GH/{name}.png";
+            imageValue = $"Others/Xbox360/360_{name}.png";
         }
         else if (type == DeviceControllerType.Guitar)
         {

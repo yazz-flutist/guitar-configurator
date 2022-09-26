@@ -48,19 +48,19 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
             string appdataFolder = AssetUtils.GetAppDataFolder();
             string pioFolder = Path.Combine(appdataFolder, "platformio");
             string pioExecutablePath = Path.Combine(pioFolder, "penv", "bin", "platformio");
-            this._pioExecutable = pioExecutablePath;
-            this.ProjectDir = Path.Combine(appdataFolder, "firmware");
-            Ready = System.IO.Directory.Exists(this.ProjectDir) && System.IO.File.Exists(pioExecutablePath);
+            _pioExecutable = pioExecutablePath;
+            ProjectDir = Path.Combine(appdataFolder, "firmware");
+            Ready = Directory.Exists(ProjectDir) && File.Exists(pioExecutablePath);
         }
 
         public async Task RevertFirmware()
         {
             string appdataFolder = AssetUtils.GetAppDataFolder();
-            if (System.IO.Directory.Exists(this.ProjectDir))
+            if (Directory.Exists(ProjectDir))
             {
-                System.IO.Directory.Delete(this.ProjectDir, true);
+                Directory.Delete(ProjectDir, true);
             }
-            this.ProgressChanged?.Invoke("Extracting Firmware", 0, 0);
+            ProgressChanged?.Invoke("Extracting Firmware", 0, 0);
             string firmwareZipPath = Path.Combine(appdataFolder, "firmware.zip");
             await AssetUtils.ExtractZip("firmware.zip", firmwareZipPath, ProjectDir);
         }
@@ -72,7 +72,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
             string installerZipPath = Path.Combine(pioFolder, "installer.zip");
             string installerPath = Path.Combine(pioFolder, "installer");
             string pioExecutablePath = Path.Combine(pioFolder, "penv", "bin", "platformio");
-            this._pioExecutable = pioExecutablePath;
+            _pioExecutable = pioExecutablePath;
 
             // On startup, reinstall the firmware, this will make sure that an update goes out, and also makes sure that the firmware is clean.
             await RevertFirmware();
@@ -87,15 +87,15 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                 }
             }
             File.WriteAllText(Path.Combine(ProjectDir, "platformio.ini"), File.ReadAllText(Path.Combine(ProjectDir, "platformio.ini")).Replace("post:ardwiino_script_post.py", "post:ardwiino_script_post_tool.py"));
-            if (!System.IO.File.Exists(pioExecutablePath))
+            if (!File.Exists(pioExecutablePath))
             {
-                this.ProgressChanged?.Invoke("Extracting Platform.IO Installer", 0, 0);
+                ProgressChanged?.Invoke("Extracting Platform.IO Installer", 0, 0);
                 Directory.CreateDirectory(pioFolder);
                 Directory.CreateDirectory(installerPath);
                 await AssetUtils.ExtractZip("pio-installer.zip", installerZipPath, installerPath);
-                this.ProgressChanged?.Invoke("Searching for python", 1, 0);
+                ProgressChanged?.Invoke("Searching for python", 1, 0);
                 var python = await FindPython();
-                this.ProgressChanged?.Invoke("Installing Platform.IO", 2, 10);
+                ProgressChanged?.Invoke("Installing Platform.IO", 2, 10);
                 Process installerProcess = new Process();
                 installerProcess.StartInfo.FileName = python;
                 installerProcess.StartInfo.Arguments = $"-m pioinstaller";
@@ -110,19 +110,19 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                 installerProcess.BeginOutputReadLine();
                 installerProcess.BeginErrorReadLine();
                 await installerProcess.WaitForExitAsync();
-                System.IO.File.Delete(installerZipPath);
-                System.IO.Directory.Delete(installerPath, true);
-                this.PlatformIoInstalled?.Invoke();
+                File.Delete(installerZipPath);
+                Directory.Delete(installerPath, true);
+                PlatformIoInstalled?.Invoke();
                 await RunPlatformIo(null, "run", "Building packages", 2, 20, 90, null).ConfigureAwait(false);
                 await RunPlatformIo(null, "system prune -f", "Cleaning up", 2, 90, 90, null).ConfigureAwait(false);
             }
             else
             {
 
-                this.PlatformIoInstalled?.Invoke();
+                PlatformIoInstalled?.Invoke();
             }
-            this.ProgressChanged?.Invoke("Ready", 2, 100);
-            this.PlatformIoWorking?.Invoke(false);
+            ProgressChanged?.Invoke("Ready", 2, 100);
+            PlatformIoWorking?.Invoke(false);
         }
 
         public async Task<PlatformIoPort[]?> GetPorts()
@@ -159,8 +159,8 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
 
         public async Task<int> RunPlatformIo(string? environment, string command, string progressMessage, int progressState, double progressStartingPercentage, double progressEndingPercentage, IConfigurableDevice? device)
         {
-            this.PlatformIoError?.Invoke(false);
-            this.PlatformIoWorking?.Invoke(true);
+            PlatformIoError?.Invoke(false);
+            PlatformIoWorking?.Invoke(true);
             double percentageStep = (progressEndingPercentage - progressStartingPercentage) / _environments.Count;
             double currentProgress = progressStartingPercentage;
             bool building = environment == null && command == "run";
@@ -178,7 +178,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
             {
                 if (environment.EndsWith("-usb"))
                 {
-                    this.ProgressChanged?.Invoke($"{progressMessage} - Looking for device", progressState, currentProgress);
+                    ProgressChanged?.Invoke($"{progressMessage} - Looking for device", progressState, currentProgress);
                     currentProgress += percentageStep / sections;
                     if (device != null)
                     {
@@ -196,7 +196,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                 {
                     if (environment.Contains("pico"))
                     {
-                        this.ProgressChanged?.Invoke($"{progressMessage} - Looking for device", progressState, currentProgress);
+                        ProgressChanged?.Invoke($"{progressMessage} - Looking for device", progressState, currentProgress);
                         currentProgress += percentageStep / sections;
                         sections = 2;
                     }
@@ -229,7 +229,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                     var matches = Regex.Matches(e.Data, @"Processing (.+?) \(.+\)");
                     if (matches.Count > 0)
                     {
-                        this.ProgressChanged?.Invoke($"{progressMessage} - {matches[0].Groups[1].Value}", progressState, currentProgress);
+                        ProgressChanged?.Invoke($"{progressMessage} - {matches[0].Groups[1].Value}", progressState, currentProgress);
                         currentProgress += percentageStep;
                     }
                 }
@@ -238,12 +238,12 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                     var matches = Regex.Matches(e.Data, @"Processing (.+?) \(.+\)");
                     if (matches.Count > 0)
                     {
-                        this.ProgressChanged?.Invoke($"{progressMessage} - Building", progressState, currentProgress);
+                        ProgressChanged?.Invoke($"{progressMessage} - Building", progressState, currentProgress);
                         currentProgress += percentageStep / sections;
                     }
                     if (e.Data.StartsWith("Looking for upload port..."))
                     {
-                        this.ProgressChanged?.Invoke($"{progressMessage} - Looking for port", progressState, currentProgress);
+                        ProgressChanged?.Invoke($"{progressMessage} - Looking for port", progressState, currentProgress);
                         currentProgress += percentageStep / sections;
                         if (environment?.Contains("uno_mega_usb") == true)
                         {
@@ -277,17 +277,17 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                     {
                         if (line.Contains("AVR device initialized and ready to accept instructions"))
                         {
-                            this.ProgressChanged?.Invoke($"{progressMessage} - Reading Settings", progressState, currentProgress);
+                            ProgressChanged?.Invoke($"{progressMessage} - Reading Settings", progressState, currentProgress);
                             state = 1;
                         }
                         if (line.Contains("writing flash"))
                         {
-                            this.ProgressChanged?.Invoke($"{progressMessage} - Uploading", progressState, currentProgress);
+                            ProgressChanged?.Invoke($"{progressMessage} - Uploading", progressState, currentProgress);
                             state = 2;
                         }
                         if (line.Contains("reading on-chip flash data"))
                         {
-                            this.ProgressChanged?.Invoke($"{progressMessage} - Verifying", progressState, currentProgress);
+                            ProgressChanged?.Invoke($"{progressMessage} - Verifying", progressState, currentProgress);
                             state = 3;
                         }
                         if (line.Contains("avrdude done.  Thank you."))
@@ -296,9 +296,9 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                         }
                         if (line.Contains("FAILED"))
                         {
-                            this.PlatformIoError?.Invoke(true);
+                            PlatformIoError?.Invoke(true);
                             hasError = true;
-                            this.ProgressChanged?.Invoke($"{progressMessage} - Error", progressState, currentProgress + percentageStep / 5);
+                            ProgressChanged?.Invoke($"{progressMessage} - Error", progressState, currentProgress + percentageStep / 5);
                             break;
                         }
                         if (done)
@@ -329,15 +329,15 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                         }
                         if (state == 1)
                         {
-                            this.ProgressChanged?.Invoke($"{progressMessage} - Reading Settings", progressState, currentProgress);
+                            ProgressChanged?.Invoke($"{progressMessage} - Reading Settings", progressState, currentProgress);
                         }
                         if (state == 2)
                         {
-                            this.ProgressChanged?.Invoke($"{progressMessage} - Uploading", progressState, currentProgress);
+                            ProgressChanged?.Invoke($"{progressMessage} - Uploading", progressState, currentProgress);
                         }
                         if (state == 3)
                         {
-                            this.ProgressChanged?.Invoke($"{progressMessage} - Verifying", progressState, currentProgress);
+                            ProgressChanged?.Invoke($"{progressMessage} - Verifying", progressState, currentProgress);
                         }
                     }
                 }
@@ -351,16 +351,16 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                 if (uploading)
                 {
                     currentProgress = progressEndingPercentage;
-                    this.ProgressChanged?.Invoke($"{progressMessage} - Waiting for Device", progressState, currentProgress);
+                    ProgressChanged?.Invoke($"{progressMessage} - Waiting for Device", progressState, currentProgress);
                 }
                 else
                 {
                     currentProgress = progressEndingPercentage;
-                    this.ProgressChanged?.Invoke($"{progressMessage} - Done", progressState, currentProgress);
+                    ProgressChanged?.Invoke($"{progressMessage} - Done", progressState, currentProgress);
                 }
             }
             // TODO:  restart uno when done
-            this.PlatformIoWorking?.Invoke(false);
+            PlatformIoWorking?.Invoke(false);
             return process.ExitCode;
         }
         private async Task<string?> FindPython()
@@ -383,7 +383,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
             foreach (var executable in executables)
             {
                 string pythonAppdataExecutable = Path.Combine(pythonFolder, executable);
-                if (System.IO.File.Exists(pythonAppdataExecutable))
+                if (File.Exists(pythonAppdataExecutable))
                 {
                     return pythonAppdataExecutable;
                 }
@@ -391,14 +391,14 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
             Directory.CreateDirectory(pythonFolder);
             if (foundExecutable == null)
             {
-                this.ProgressChanged?.Invoke("Downloading python portable", 1, 10);
+                ProgressChanged?.Invoke("Downloading python portable", 1, 10);
                 var pythonJsonLoc = Path.Combine(pythonFolder, "python.json");
                 string arch = GetSysType();
                 using (var download = new HttpClientDownloadWithProgress("https://api.github.com/repos/indygreg/python-build-standalone/releases/62235403", pythonJsonLoc))
                 {
                     await download.StartDownload().ConfigureAwait(false);
                 };
-                var jsonRelease = System.IO.File.ReadAllText(pythonJsonLoc);
+                var jsonRelease = File.ReadAllText(pythonJsonLoc);
                 GithubRelease release = GithubRelease.FromJson(jsonRelease);
                 bool found = false;
                 foreach (var asset in release.Assets)
@@ -407,7 +407,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                     {
                         using (var download = new HttpClientDownloadWithProgress(asset.BrowserDownloadUrl!.ToString(), pythonLoc))
                         {
-                            download.ProgressChanged += (totalFileSize, totalBytesDownloaded, percentage) => this.ProgressChanged?.Invoke("Downloading python portable", 1, 20 + (percentage * 0.4) ?? 0);
+                            download.ProgressChanged += (totalFileSize, totalBytesDownloaded, percentage) => ProgressChanged?.Invoke("Downloading python portable", 1, 20 + (percentage * 0.4) ?? 0);
                             await download.StartDownload().ConfigureAwait(false);
                         };
                         found = true;
@@ -418,8 +418,8 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                 {
                     return null;
                 }
-                this.ProgressChanged?.Invoke("Extracting python portable", 1, 60);
-                using (var inStream = System.IO.File.OpenRead(pythonLoc))
+                ProgressChanged?.Invoke("Extracting python portable", 1, 60);
+                using (var inStream = File.OpenRead(pythonLoc))
                 {
                     Stream gzipStream = new GZipInputStream(inStream);
 
@@ -428,14 +428,14 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                     tarArchive.Close();
 
                     gzipStream.Close();
-                    System.IO.File.Delete(pythonLoc);
-                    System.IO.File.Delete(pythonJsonLoc);
+                    File.Delete(pythonLoc);
+                    File.Delete(pythonJsonLoc);
                 }
             }
             foreach (var executable in executables)
             {
                 string pythonAppdataExecutable = Path.Combine(pythonFolder, executable);
-                if (System.IO.File.Exists(pythonAppdataExecutable))
+                if (File.Exists(pythonAppdataExecutable))
                 {
                     var unixFileInfo = new Mono.Unix.UnixFileInfo(pythonAppdataExecutable);
                     unixFileInfo.FileAccessPermissions |= Mono.Unix.FileAccessPermissions.UserExecute;
@@ -493,14 +493,14 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
 
         public string? GetFullPath(string fileName)
         {
-            if (System.IO.File.Exists(fileName))
+            if (File.Exists(fileName))
                 return Path.GetFullPath(fileName);
 
             var values = Environment.GetEnvironmentVariable("PATH")!;
             foreach (var path in values.Split(Path.PathSeparator))
             {
                 var fullPath = Path.Combine(path, fileName);
-                if (System.IO.File.Exists(fullPath))
+                if (File.Exists(fullPath))
                     return fullPath;
             }
             return null;
