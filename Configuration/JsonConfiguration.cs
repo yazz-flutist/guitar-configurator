@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Dahomey.Json;
@@ -38,6 +39,17 @@ public class JsonConfiguration
         this.RhythmType = rhythmType;
         this.TiltEnabled = tiltEnabled;
         this.XInputOnWindows = xInputOnWindows;
+    }
+    
+    public JsonConfiguration(ConfigViewModel model)
+    {
+        this.Bindings = model.Bindings.ToList();
+        this.LedType = model.LedType;
+        this.DeviceType = model.DeviceType;
+        this.EmulationType = model.EmulationType;
+        this.RhythmType = model.RhythmType;
+        this.TiltEnabled = model.TiltEnabled;
+        this.XInputOnWindows = model.XInputOnWindows;
     }
 
 

@@ -5,9 +5,9 @@ using ReactiveUI;
 
 namespace GuitarConfiguratorSharp.NetCore.Views
 {
-    public partial class AddInputWindow : ReactiveWindow<AddInputWindowViewModel>
+    public partial class SelectPinWindow : ReactiveWindow<SelectPinWindowViewModel>
     {
-        public AddInputWindow()
+        public SelectPinWindow()
         {
             this.WhenActivated(disposables => { });
             AvaloniaXamlLoader.Load(this);

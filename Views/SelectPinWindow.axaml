@@ -4,17 +4,17 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:netCore="clr-namespace:GuitarConfiguratorSharp.NetCore"
+        xmlns:viewModels="clr-namespace:GuitarConfiguratorSharp.NetCore.ViewModels"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-        x:Class="GuitarConfiguratorSharp.NetCore.Views.AddInputWindow"
+        x:Class="GuitarConfiguratorSharp.NetCore.Views.SelectPinWindow"
         TransparencyLevelHint="AcrylicBlur"
         WindowStartupLocation="CenterOwner"
         Icon="/Assets/avalonia-logo.ico"
         Title="GuitarConfiguratorSharp"
         Background="Transparent"
+        x:CompileBindings="True"
+        x:DataType="viewModels:SelectPinWindowViewModel"
         ExtendClientAreaToDecorationsHint="True">
-    <Window.Resources>
-        <netCore:BindingBitmapConverter x:Key="ImageConverter" />
-    </Window.Resources>
     <Panel>
         <ExperimentalAcrylicBorder IsHitTestVisible="False">
             <ExperimentalAcrylicBorder.Material>
@@ -26,18 +26,6 @@
             </ExperimentalAcrylicBorder.Material>
         </ExperimentalAcrylicBorder>
         <Panel Margin="40">
-            <TextBlock Text="{Binding Output.Name}"></TextBlock>
-            <Image ToolTip.Tip="{Binding Output.Name}"
-                   HorizontalAlignment="Center" Width="75">
-                <Image.Source>
-                    <MultiBinding
-                        Converter="{StaticResource ImageConverter}">
-                        <Binding
-                            Path="$parent[UserControl].DataContext.DeviceType" />
-                        <Binding Path="Output.Image" />
-                    </MultiBinding>
-                </Image.Source>
-            </Image>
         </Panel>
     </Panel>
 </Window>

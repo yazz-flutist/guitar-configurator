@@ -55,6 +55,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
 
         public async Task RevertFirmware()
         {
+            //TODO: now you can just delete include/config_data.h
             string appdataFolder = AssetUtils.GetAppDataFolder();
             if (Directory.Exists(ProjectDir))
             {
@@ -185,7 +186,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                         environment = await device.GetUploadPort();
                         if (environment == null)
                         {
-                            throw new NotImplementedException("unexpected");
+                            throw new NotImplementedException("unable to find port?");
                         }
                         isUsb = true;
                     }
