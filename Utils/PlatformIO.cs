@@ -55,7 +55,6 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
 
         public async Task RevertFirmware()
         {
-            //TODO: now you can just delete include/config_data.h
             string appdataFolder = AssetUtils.GetAppDataFolder();
             if (Directory.Exists(ProjectDir))
             {

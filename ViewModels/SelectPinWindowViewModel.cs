@@ -1,4 +1,3 @@
-using System;
 using GuitarConfiguratorSharp.NetCore.Configuration;
 using ReactiveUI;
 
