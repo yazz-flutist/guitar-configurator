@@ -1,22 +1,22 @@
 using Avalonia.Media;
-using Dahomey.Json.Attributes;
 using GuitarConfiguratorSharp.NetCore.Configuration.Combined;
 using GuitarConfiguratorSharp.NetCore.Configuration.Microcontrollers;
 using GuitarConfiguratorSharp.NetCore.Configuration.Outputs;
 using GuitarConfiguratorSharp.NetCore.ViewModels;
+using ProtoBuf;
 
-namespace GuitarConfiguratorSharp.NetCore.Configuration.Json;
+namespace GuitarConfiguratorSharp.NetCore.Configuration.Serialization;
 
-[JsonDiscriminator("djc")]
-public class JsonDjCombinedOutput : JsonOutput
+[ProtoContract(SkipConstructor = true)]
+public class SerializedDjCombinedOutput : SerializedOutput
 {
-    public override JsonInput? Input => null;
-    public override Color LedOn { get; }
-    public override Color LedOff { get; }
-    public int Sda { get; }
-    public int Scl { get; }
+    [ProtoMember(1)] public override SerializedInput? Input => null;
+    [ProtoMember(2)] public override Color LedOn { get; }
+    [ProtoMember(3)] public override Color LedOff { get; }
+    [ProtoMember(4)] public int Sda { get; }
+    [ProtoMember(5)] public int Scl { get; }
 
-    public JsonDjCombinedOutput(Color ledOn, Color ledOff, int sda, int scl)
+    public SerializedDjCombinedOutput(Color ledOn, Color ledOff, int sda, int scl)
     {
         LedOn = ledOn;
         LedOff = ledOff;
