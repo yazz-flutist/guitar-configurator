@@ -3,7 +3,7 @@ namespace GuitarConfiguratorSharp.NetCore.Configuration.Microcontrollers;
 public enum SpiPinType
 {
     CSn,
-    SCK,
-    MOSI,
-    MISO
+    Sck,
+    Mosi,
+    Miso
 }

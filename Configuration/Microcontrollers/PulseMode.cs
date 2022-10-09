@@ -1,7 +1,6 @@
 namespace GuitarConfiguratorSharp.NetCore.Configuration.Microcontrollers;
 
-public enum TwiPinType
+public enum PulseMode
 {
-    Sda,
-    Scl
+    LOW,HIGH
 }
