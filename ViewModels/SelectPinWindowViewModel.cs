@@ -8,6 +8,6 @@ public class SelectPinWindowViewModel : ReactiveObject
     public InputWithPin Input { get; }
     public SelectPinWindowViewModel(InputWithPin input)
     {
-        this.Input = input;
+        Input = input;
     }
 }

@@ -2,7 +2,7 @@ using System;
 
 namespace GuitarConfiguratorSharp.NetCore.Utils;
 
-public partial class Author
+public class Author
 {
     public string Login { get; set; } = "";
 

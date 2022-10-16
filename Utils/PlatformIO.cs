@@ -10,6 +10,7 @@ using ICSharpCode.SharpZipLib.GZip;
 using ICSharpCode.SharpZipLib.Tar;
 using IniParser;
 using IniParser.Model;
+using Mono.Unix;
 
 namespace GuitarConfiguratorSharp.NetCore.Utils
 {
@@ -98,7 +99,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                 ProgressChanged?.Invoke("Installing Platform.IO", 2, 10);
                 Process installerProcess = new Process();
                 installerProcess.StartInfo.FileName = python;
-                installerProcess.StartInfo.Arguments = $"-m pioinstaller";
+                installerProcess.StartInfo.Arguments = "-m pioinstaller";
                 installerProcess.StartInfo.EnvironmentVariables["PYTHONPATH"] = installerPath;
                 installerProcess.StartInfo.EnvironmentVariables["PLATFORMIO_CORE_DIR"] = pioFolder;
                 installerProcess.StartInfo.UseShellExecute = false;
@@ -140,7 +141,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
             process.StartInfo.WorkingDirectory = ProjectDir;
             process.StartInfo.EnvironmentVariables["PLATFORMIO_CORE_DIR"] = pioFolder;
 
-            process.StartInfo.Arguments = $"device list --json-output";
+            process.StartInfo.Arguments = "device list --json-output";
 
             process.StartInfo.UseShellExecute = false;
             process.StartInfo.RedirectStandardOutput = true;
@@ -437,8 +438,8 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                 string pythonAppdataExecutable = Path.Combine(pythonFolder, executable);
                 if (File.Exists(pythonAppdataExecutable))
                 {
-                    var unixFileInfo = new Mono.Unix.UnixFileInfo(pythonAppdataExecutable);
-                    unixFileInfo.FileAccessPermissions |= Mono.Unix.FileAccessPermissions.UserExecute;
+                    var unixFileInfo = new UnixFileInfo(pythonAppdataExecutable);
+                    unixFileInfo.FileAccessPermissions |= FileAccessPermissions.UserExecute;
                     return pythonAppdataExecutable;
                 }
             }
@@ -447,10 +448,10 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
 
         public string[] GetPythonExecutables()
         {
-            var executables = new string[] { "python3", "python", Path.Combine("bin", "python3.10") };
+            var executables = new[] { "python3", "python", Path.Combine("bin", "python3.10") };
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                executables = new string[] { "python.exe" };
+                executables = new[] { "python.exe" };
             }
             return executables;
         }
@@ -476,11 +477,13 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
             {
                 return $"{arch}-pc-windows-msvc-shared";
             }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
                 return $"{arch}-apple-darwin";
             }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 return $"{arch}-unknown-linux-gnu";
             }

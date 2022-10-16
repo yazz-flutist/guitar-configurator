@@ -13,7 +13,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
 
         public Uri HtmlUrl { get; set; } = new("https://www.github.com");
 
-        public long Id { get; set; } = 0;
+        public long Id { get; set; }
 
         public Author Author { get; set; } = new();
 
@@ -25,13 +25,13 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
 
         public string Name { get; set; } = "";
 
-        public bool Draft { get; set; } = false;
+        public bool Draft { get; set; }
 
-        public bool Prerelease { get; set; } = false;
+        public bool Prerelease { get; set; }
 
-        public DateTimeOffset CreatedAt { get; set; } = new();
+        public DateTimeOffset CreatedAt { get; set; }
 
-        public DateTimeOffset PublishedAt { get; set; } = new();
+        public DateTimeOffset PublishedAt { get; set; }
 
         public Asset[] Assets { get; set; } = Array.Empty<Asset>();
 

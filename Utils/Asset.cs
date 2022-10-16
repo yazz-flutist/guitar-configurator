@@ -2,7 +2,7 @@ using System;
 
 namespace GuitarConfiguratorSharp.NetCore.Utils;
 
-public partial class Asset
+public class Asset
 {
     public Uri Url { get; set; } = new("https://www.github.com");
 

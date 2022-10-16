@@ -5,7 +5,7 @@ using ReactiveUI;
 
 namespace GuitarConfiguratorSharp.NetCore.Views
 {
-    public partial class SelectPinWindow : ReactiveWindow<SelectPinWindowViewModel>
+    public class SelectPinWindow : ReactiveWindow<SelectPinWindowViewModel>
     {
         public SelectPinWindow()
         {
