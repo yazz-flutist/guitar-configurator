@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -14,7 +15,6 @@ using Mono.Unix;
 
 namespace GuitarConfiguratorSharp.NetCore.Utils
 {
-
     public class PlatformIo
     {
         public delegate void ProgressChangedHandler(string message, int state, double progressPercentage);
@@ -24,15 +24,23 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
         public delegate void TextChangedHandler(string message, bool clear);
 
         public event TextChangedHandler? TextChanged;
+
         public delegate void PlatformIoErrorHandler(bool error);
 
         public event PlatformIoErrorHandler? PlatformIoError;
+
         public delegate void PlatformIoWorkingHandler(bool working);
 
         public event PlatformIoWorkingHandler? PlatformIoWorking;
+
+        public delegate void PlatformIoProgrammingHandler(bool working);
+
+        public event PlatformIoProgrammingHandler? PlatformIoProgramming;
+
         public delegate void PlatformIoInstalledHandler();
 
         public event PlatformIoInstalledHandler? PlatformIoInstalled;
+
         public delegate void CommandCompleteHandler();
 
         public event CommandCompleteHandler? CommandComplete;
@@ -61,6 +69,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
             {
                 Directory.Delete(ProjectDir, true);
             }
+
             ProgressChanged?.Invoke("Extracting Firmware", 0, 0);
             string firmwareZipPath = Path.Combine(appdataFolder, "firmware.zip");
             await AssetUtils.ExtractZip("firmware.zip", firmwareZipPath, ProjectDir);
@@ -87,7 +96,10 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                     _environments.Add(key.SectionName.Split(':')[1]);
                 }
             }
-            File.WriteAllText(Path.Combine(ProjectDir, "platformio.ini"), File.ReadAllText(Path.Combine(ProjectDir, "platformio.ini")).Replace("post:ardwiino_script_post.py", "post:ardwiino_script_post_tool.py"));
+
+            File.WriteAllText(Path.Combine(ProjectDir, "platformio.ini"),
+                File.ReadAllText(Path.Combine(ProjectDir, "platformio.ini")).Replace("post:ardwiino_script_post.py",
+                    "post:ardwiino_script_post_tool.py"));
             if (!File.Exists(pioExecutablePath))
             {
                 ProgressChanged?.Invoke("Extracting Platform.IO Installer", 0, 0);
@@ -114,25 +126,20 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                 File.Delete(installerZipPath);
                 Directory.Delete(installerPath, true);
                 PlatformIoInstalled?.Invoke();
-                await RunPlatformIo(null, "run", "Building packages", 2, 20, 90, null).ConfigureAwait(false);
-                await RunPlatformIo(null, "system prune -f", "Cleaning up", 2, 90, 90, null).ConfigureAwait(false);
+                await RunPlatformIo(null, new[]{"run"}, "Building packages", 2, 20, 90, null).ConfigureAwait(false);
+                await RunPlatformIo(null, new[]{"system prune -f"}, "Cleaning up", 2, 90, 90, null).ConfigureAwait(false);
             }
             else
             {
-
                 PlatformIoInstalled?.Invoke();
             }
+
             ProgressChanged?.Invoke("Ready", 2, 100);
             PlatformIoWorking?.Invoke(false);
         }
 
         public async Task<PlatformIoPort[]?> GetPorts()
         {
-            if (_pioExecutable == null)
-            {
-                return new PlatformIoPort[] { };
-            }
-
             string appdataFolder = AssetUtils.GetAppDataFolder();
             string pioFolder = Path.Combine(appdataFolder, "platformio");
             Process process = new Process();
@@ -151,191 +158,214 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
             process.Start();
             string output = process.StandardOutput.ReadToEnd();
             await process.WaitForExitAsync();
-            if (output != "") {
+            if (output != "")
+            {
                 return PlatformIoPort.FromJson(output);
             }
-            return null;
 
+            return null;
         }
 
-        public async Task<int> RunPlatformIo(string? environment, string command, string progressMessage, int progressState, double progressStartingPercentage, double progressEndingPercentage, IConfigurableDevice? device)
+        public async Task<int> RunPlatformIo(string? environment, string[] command, string progressMessage,
+            int progressState, double progressStartingPercentage, double progressEndingPercentage,
+            IConfigurableDevice? device)
         {
             PlatformIoError?.Invoke(false);
             PlatformIoWorking?.Invoke(true);
             double percentageStep = (progressEndingPercentage - progressStartingPercentage) / _environments.Count;
             double currentProgress = progressStartingPercentage;
-            bool building = environment == null && command == "run";
-            bool uploading = environment != null && command.StartsWith("run");
+            bool building = environment == null && command.Length == 1;
+            bool uploading = environment != null && command.Length > 1;
             string appdataFolder = AssetUtils.GetAppDataFolder();
             string pioFolder = Path.Combine(appdataFolder, "platformio");
+            var python = await FindPython();
             Process process = new Process();
             process.EnableRaisingEvents = true;
-            process.StartInfo.FileName = _pioExecutable;
+            process.StartInfo.FileName = python;
             process.StartInfo.WorkingDirectory = ProjectDir;
             process.StartInfo.EnvironmentVariables["PLATFORMIO_CORE_DIR"] = pioFolder;
+            process.StartInfo.EnvironmentVariables["PYTHONUNBUFFERED"] = "1";
+            var args = new List<string>(command);
+            args.Insert(0, _pioExecutable);
             int sections = 5;
             bool isUsb = false;
             if (environment != null)
             {
-                if (environment.EndsWith("-usb"))
+                PlatformIoProgramming?.Invoke(true);
+                if (environment.EndsWith("_usb"))
                 {
                     ProgressChanged?.Invoke($"{progressMessage} - Looking for device", progressState, currentProgress);
                     currentProgress += percentageStep / sections;
                     if (device != null)
                     {
-                        environment = await device.GetUploadPort();
-                        if (environment == null)
-                        {
-                            throw new NotImplementedException("unable to find port?");
-                        }
                         isUsb = true;
                     }
+
+                    sections = 10;
                 }
+
                 percentageStep = (progressEndingPercentage - progressStartingPercentage);
-                var args = $"{command} --environment {environment}";
+                args.Add("--environment");
+                args.Add(environment);
                 if (uploading && !isUsb)
                 {
                     if (environment.Contains("pico"))
                     {
-                        ProgressChanged?.Invoke($"{progressMessage} - Looking for device", progressState, currentProgress);
+                        ProgressChanged?.Invoke($"{progressMessage} - Looking for device", progressState,
+                            currentProgress);
                         currentProgress += percentageStep / sections;
                         sections = 2;
                     }
+
                     if (device != null)
                     {
                         var port = await device.GetUploadPort();
                         if (port != null)
                         {
-                            args += $" --upload-port {port}";
+                            args.Add("--upload-port");
+                            args.Add(port);
                         }
                     }
                 }
-                process.StartInfo.Arguments = args;
             }
-            else
-            {
-                process.StartInfo.Arguments = $"{command}";
-            }
+            //Some pio stuff uses Standard Output, some uses Standard Error, its easier to just flatten both of those to a single stream
+            process.StartInfo.Arguments = $"-c \"import subprocess;subprocess.run([{string.Join(",",args.Select(s => $"'{s}'"))}],stderr=subprocess.STDOUT)\"";
+
             process.StartInfo.UseShellExecute = false;
             process.StartInfo.RedirectStandardOutput = true;
             process.StartInfo.RedirectStandardError = true;
+            
             TextChanged?.Invoke("", true);
             int state = 0;
-            bool done = false;
-            process.OutputDataReceived += (sender, e) =>
-            {
-                TextChanged?.Invoke(e.Data!, false);
-                if (building && e.Data != null)
-                {
-                    var matches = Regex.Matches(e.Data, @"Processing (.+?) \(.+\)");
-                    if (matches.Count > 0)
-                    {
-                        ProgressChanged?.Invoke($"{progressMessage} - {matches[0].Groups[1].Value}", progressState, currentProgress);
-                        currentProgress += percentageStep;
-                    }
-                }
-                if (uploading && e.Data != null)
-                {
-                    var matches = Regex.Matches(e.Data, @"Processing (.+?) \(.+\)");
-                    if (matches.Count > 0)
-                    {
-                        ProgressChanged?.Invoke($"{progressMessage} - Building", progressState, currentProgress);
-                        currentProgress += percentageStep / sections;
-                    }
-                    if (e.Data.StartsWith("Looking for upload port..."))
-                    {
-                        ProgressChanged?.Invoke($"{progressMessage} - Looking for port", progressState, currentProgress);
-                        currentProgress += percentageStep / sections;
-                        if (environment?.Contains("uno_mega_usb") == true)
-                        {
-                            device?.BootloaderUsb();
-                        }
-                        else
-                        {
-                            device?.Bootloader();
-                        }
-                    }
-
-                    if (e.Data.Contains("SUCCESS"))
-                    {
-                        done = true;
-                    }
-                }
-            };
-
             process.Start();
-
-            process.BeginOutputReadLine();
+            
+            // process.BeginOutputReadLine();
             // process.BeginErrorReadLine();
-            char[] buffer = new char[1];
-            bool hasError = false;
+            var buffer = new char[1];
+            var hasError = false;
+            bool main = false;
             while (true)
             {
                 if (state == 0)
                 {
-                    var line = await process.StandardError.ReadLineAsync();
-                    if (line != null)
-                    {
-                        if (line.Contains("AVR device initialized and ready to accept instructions"))
-                        {
-                            ProgressChanged?.Invoke($"{progressMessage} - Reading Settings", progressState, currentProgress);
-                            state = 1;
-                        }
-                        if (line.Contains("writing flash"))
-                        {
-                            ProgressChanged?.Invoke($"{progressMessage} - Uploading", progressState, currentProgress);
-                            state = 2;
-                        }
-                        if (line.Contains("reading on-chip flash data"))
-                        {
-                            ProgressChanged?.Invoke($"{progressMessage} - Verifying", progressState, currentProgress);
-                            state = 3;
-                        }
-                        if (line.Contains("avrdude done.  Thank you."))
-                        {
-                            break;
-                        }
-                        if (line.Contains("FAILED"))
-                        {
-                            PlatformIoError?.Invoke(true);
-                            hasError = true;
-                            ProgressChanged?.Invoke($"{progressMessage} - Error", progressState, currentProgress + percentageStep / 5);
-                            break;
-                        }
-                        if (done)
-                        {
-                            break;
-                        }
-                        TextChanged?.Invoke(line, false);
-                    }
-                    else
+                    var line = await process.StandardOutput.ReadLineAsync();
+                    if (string.IsNullOrEmpty(line))
                     {
                         await Task.Delay(1);
+                        continue;
+                    }
+
+                    TextChanged?.Invoke(line, false);
+                    if (building)
+                    {
+                        var matches = Regex.Matches(line, @"Processing (.+?) \(.+\)");
+                        if (matches.Count > 0)
+                        {
+                            ProgressChanged?.Invoke($"{progressMessage} - {matches[0].Groups[1].Value}",
+                                progressState, currentProgress);
+                            currentProgress += percentageStep;
+                        }
+                    }
+
+                    if (uploading)
+                    {
+                        var matches = Regex.Matches(line, @"Processing (.+?) \(.+\)");
+                        if (matches.Count > 0)
+                        {
+                            ProgressChanged?.Invoke($"{progressMessage} - Building", progressState,
+                                currentProgress);
+                            currentProgress += percentageStep / sections;
+                        }
+
+                        if (line.StartsWith("Looking for upload port..."))
+                        {
+                            ProgressChanged?.Invoke($"{progressMessage} - Looking for port", progressState,
+                                currentProgress);
+                            currentProgress += percentageStep / sections;
+                            if (environment?.Contains("uno_mega_usb") == true)
+                            {
+                                device?.BootloaderUsb();
+                            }
+                            else
+                            {
+                                device?.Bootloader();
+                            }
+                        }
+
+                        if (line.Contains("SUCCESS"))
+                        {
+                            break;
+                        }
+                    }
+
+                    if (line.Contains("AVR device initialized and ready to accept instructions"))
+                    {
+                        ProgressChanged?.Invoke($"{progressMessage} - Reading Settings", progressState,
+                            currentProgress);
+                        state = 1;
+                    }
+
+                    if (line.Contains("writing flash"))
+                    {
+                        ProgressChanged?.Invoke($"{progressMessage} - Uploading", progressState,
+                            currentProgress);
+                        state = 2;
+                    }
+
+                    if (line.Contains("reading on-chip flash data"))
+                    {
+                        ProgressChanged?.Invoke($"{progressMessage} - Verifying", progressState,
+                            currentProgress);
+                        state = 3;
+                    }
+
+                    if (line.Contains("avrdude done.  Thank you."))
+                    {
+                        if (!main)
+                        {
+                            main = true;
+                            continue;
+                        } 
+                        break;
+                    }
+
+                    if (line.Contains("FAILED"))
+                    {
+                        PlatformIoError?.Invoke(true);
+                        hasError = true;
+                        ProgressChanged?.Invoke($"{progressMessage} - Error", progressState,
+                            currentProgress + percentageStep / 5);
+                        break;
                     }
                 }
                 else
                 {
-                    while ((await process.StandardError.ReadAsync(buffer, 0, 1)) > 0)
+                    while ((await process.StandardOutput.ReadAsync(buffer, 0, 1)) > 0)
                     {
-
+                        Console.Write(buffer[0]);
                         // process character...for example:
                         if (buffer[0] == '#')
                         {
                             currentProgress += percentageStep / 50 / sections;
                         }
+
                         if (buffer[0] == 's')
                         {
                             state = 0;
                             break;
                         }
+
                         if (state == 1)
                         {
-                            ProgressChanged?.Invoke($"{progressMessage} - Reading Settings", progressState, currentProgress);
+                            ProgressChanged?.Invoke($"{progressMessage} - Reading Settings", progressState,
+                                currentProgress);
                         }
+
                         if (state == 2)
                         {
                             ProgressChanged?.Invoke($"{progressMessage} - Uploading", progressState, currentProgress);
                         }
+
                         if (state == 3)
                         {
                             ProgressChanged?.Invoke($"{progressMessage} - Verifying", progressState, currentProgress);
@@ -360,10 +390,12 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                     ProgressChanged?.Invoke($"{progressMessage} - Done", progressState, currentProgress);
                 }
             }
-            // TODO:  restart uno when done
+
             PlatformIoWorking?.Invoke(false);
+            PlatformIoProgramming?.Invoke(false);
             return process.ExitCode;
         }
+
         private async Task<string?> FindPython()
         {
             string appdataFolder = AssetUtils.GetAppDataFolder();
@@ -381,6 +413,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                     return executable;
                 }
             }
+
             foreach (var executable in executables)
             {
                 string pythonAppdataExecutable = Path.Combine(pythonFolder, executable);
@@ -389,16 +422,21 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                     return pythonAppdataExecutable;
                 }
             }
+
             Directory.CreateDirectory(pythonFolder);
             if (foundExecutable == null)
             {
                 ProgressChanged?.Invoke("Downloading python portable", 1, 10);
                 var pythonJsonLoc = Path.Combine(pythonFolder, "python.json");
                 string arch = GetSysType();
-                using (var download = new HttpClientDownloadWithProgress("https://api.github.com/repos/indygreg/python-build-standalone/releases/62235403", pythonJsonLoc))
+                using (var download = new HttpClientDownloadWithProgress(
+                           "https://api.github.com/repos/indygreg/python-build-standalone/releases/62235403",
+                           pythonJsonLoc))
                 {
                     await download.StartDownload().ConfigureAwait(false);
-                };
+                }
+
+                ;
                 var jsonRelease = File.ReadAllText(pythonJsonLoc);
                 GithubRelease release = GithubRelease.FromJson(jsonRelease);
                 bool found = false;
@@ -406,19 +444,25 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                 {
                     if (asset.Name!.EndsWith($"{arch}-install_only.tar.gz"))
                     {
-                        using (var download = new HttpClientDownloadWithProgress(asset.BrowserDownloadUrl!.ToString(), pythonLoc))
+                        using (var download =
+                               new HttpClientDownloadWithProgress(asset.BrowserDownloadUrl!.ToString(), pythonLoc))
                         {
-                            download.ProgressChanged += (totalFileSize, totalBytesDownloaded, percentage) => ProgressChanged?.Invoke("Downloading python portable", 1, 20 + (percentage * 0.4) ?? 0);
+                            download.ProgressChanged += (totalFileSize, totalBytesDownloaded, percentage) =>
+                                ProgressChanged?.Invoke("Downloading python portable", 1, 20 + (percentage * 0.4) ?? 0);
                             await download.StartDownload().ConfigureAwait(false);
-                        };
+                        }
+
+                        ;
                         found = true;
                         break;
                     }
                 }
+
                 if (!found)
                 {
                     return null;
                 }
+
                 ProgressChanged?.Invoke("Extracting python portable", 1, 60);
                 using (var inStream = File.OpenRead(pythonLoc))
                 {
@@ -433,6 +477,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                     File.Delete(pythonJsonLoc);
                 }
             }
+
             foreach (var executable in executables)
             {
                 string pythonAppdataExecutable = Path.Combine(pythonFolder, executable);
@@ -443,18 +488,21 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                     return pythonAppdataExecutable;
                 }
             }
+
             return null;
         }
 
         public string[] GetPythonExecutables()
         {
-            var executables = new[] { "python3", "python", Path.Combine("bin", "python3.10") };
+            var executables = new[] {"python3", "python", Path.Combine("bin", "python3.10")};
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                executables = new[] { "python.exe" };
+                executables = new[] {"python.exe"};
             }
+
             return executables;
         }
+
         public string GetSysType()
         {
             string arch = "unknown";
@@ -473,6 +521,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                     arch = "aarch64";
                     break;
             }
+
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 return $"{arch}-pc-windows-msvc-shared";
@@ -487,8 +536,10 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
             {
                 return $"{arch}-unknown-linux-gnu";
             }
+
             return "unsupported";
         }
+
         public bool ExistsOnPath(string fileName)
         {
             return GetFullPath(fileName) != null;
@@ -506,6 +557,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                 if (File.Exists(fullPath))
                     return fullPath;
             }
+
             return null;
         }
     }
