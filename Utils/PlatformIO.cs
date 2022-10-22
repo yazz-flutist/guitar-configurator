@@ -192,6 +192,10 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
             if (environment != null)
             {
                 PlatformIoProgramming?.Invoke(true);
+                if (device is Arduino)
+                {
+                    sections = 10;
+                }
                 if (environment.EndsWith("_usb"))
                 {
                     ProgressChanged?.Invoke($"{progressMessage} - Looking for device", progressState, currentProgress);
@@ -243,8 +247,8 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
             // process.BeginErrorReadLine();
             var buffer = new char[1];
             var hasError = false;
-            bool main = false;
-            while (true)
+            bool main = sections == 5;
+            while (!process.HasExited)
             {
                 if (state == 0)
                 {
@@ -277,24 +281,31 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                             currentProgress += percentageStep / sections;
                         }
 
+                        if (line.StartsWith("Detecting microcontroller type"))
+                        {
+                            if (device is Santroller)
+                            {
+                                device.Bootloader();
+                            }
+                        }
                         if (line.StartsWith("Looking for upload port..."))
                         {
                             ProgressChanged?.Invoke($"{progressMessage} - Looking for port", progressState,
                                 currentProgress);
                             currentProgress += percentageStep / sections;
-                            if (environment?.Contains("uno_mega_usb") == true)
+                            
+
+                            if (device is Santroller && !isUsb)
                             {
-                                device?.BootloaderUsb();
-                            }
-                            else
-                            {
-                                device?.Bootloader();
+                                device.Bootloader();
                             }
                         }
-
                         if (line.Contains("SUCCESS"))
                         {
-                            break;
+                            if (device is PicoDevice || sections == 5)
+                            {
+                                break;
+                            }
                         }
                     }
 
@@ -342,7 +353,6 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                 {
                     while ((await process.StandardOutput.ReadAsync(buffer, 0, 1)) > 0)
                     {
-                        Console.Write(buffer[0]);
                         // process character...for example:
                         if (buffer[0] == '#')
                         {
