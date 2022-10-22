@@ -41,10 +41,6 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
 
         public event PlatformIoInstalledHandler? PlatformIoInstalled;
 
-        public delegate void CommandCompleteHandler();
-
-        public event CommandCompleteHandler? CommandComplete;
-
         private string _pioExecutable;
         public string ProjectDir { get; }
         private readonly List<string> _environments;
@@ -386,7 +382,6 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
 
             await process.WaitForExitAsync();
 
-            CommandComplete?.Invoke();
             if (!hasError)
             {
                 if (uploading)
