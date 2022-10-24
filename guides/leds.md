@@ -9,7 +9,7 @@ You can add LEDs that will light up when a button or analogue input is pressed. 
 
 ## Steps
 1. Connect the VCC and GND pins on all LEDs that are being used to the Arduino.
-2. Connect the SCK (DI) and MOSI (CI) on the first LED to the SCK and MOSI pins on your Arduino. Then chain the SCK (DO) and MOSI (CO) outputs to the inputs on the next LED, until all LEDs are connected.
+2. Connect the SCK (CI) and MOSI (DI) on the first LED to the SCK and MOSI pins on your Arduino. Then chain the SCK (CO) and MOSI (DO) outputs to the inputs on the next LED, until all LEDs are connected.
    * For an Arduino Pro Micro (3.3v), Leonardo or Micro, the SCK pin is pin 15, the MOSI pin is pin 16 and the MISO pin is pin 14.
    * For an Arduino Uno, pin 11 is MOSI, pin 12 is MISO and pin 13 is SCK.
    * For an Arduino Mega, pin 51 is MOSI, pin 50 is MISO and pin 52 is SCK.
