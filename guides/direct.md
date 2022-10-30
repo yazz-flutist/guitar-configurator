@@ -152,8 +152,12 @@ For guitars with a joystick, there will be four pins, one is VCC, one is GND, on
 
 6. For the Micro, Leonardo and Pro Micro, please pick the type of device you have in the dropdown. Note that you need to get the voltage right, otherwise your device will not work and will need to be reset.
 7. Click `Start programming` and wait for it to program
-8. Once it finishes, Click `Start Configuring`
-9. You will be taken to following the configuration screen.
+
+ ```note
+If you are on linux and can't proceed past this step, follow these instructions: https://github.com/sanjay900/guitar-configurator/issues/32
+```   
+9. Once it finishes, Click `Start Configuring`
+10. You will be taken to following the configuration screen.
 
     ![Graphical config](../assets/images/main-screen-graphical.png)
 
