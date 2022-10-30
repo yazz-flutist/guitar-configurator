@@ -94,8 +94,8 @@ Once you have successfully modded one guitar (or even during your first) you wil
 ## Whammy
 1. With the whammy, the middle pin is the data pin, and one outer pin pins is VCC while the other pin is GND (it doesn't matter which one, you can flip it when programming later if needed). Whammy needs to go to an analogue pin.
 2. Connect VCC and GND to the microcontroller. (the two outside wires)
+   * If your whammy is not responding correctly in game, you may need to swap VCC and GND around.
 3. Connect the data (middle) pin to an analogue pin on the microcontroller. These are labeled with an A on the microcontroller.
-    * If you are using a pi pico, make note of which analogue pin you used as the auto mapping in the configurator doesn't always work. 
 
 ## Tilt
 1. Connect your tilt sensor to the microcontroller.
