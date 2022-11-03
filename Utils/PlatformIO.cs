@@ -50,9 +50,9 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
         public PlatformIo()
         {
             _environments = new List<string>();
-            string appdataFolder = AssetUtils.GetAppDataFolder();
-            string pioFolder = Path.Combine(appdataFolder, "platformio");
-            string pioExecutablePath = Path.Combine(pioFolder, "penv", "bin", "platformio");
+            var appdataFolder = AssetUtils.GetAppDataFolder();
+            var pioFolder = Path.Combine(appdataFolder, "platformio");
+            var pioExecutablePath = Path.Combine(pioFolder, "penv", "bin", "platformio");
             _pioExecutable = pioExecutablePath;
             ProjectDir = Path.Combine(appdataFolder, "firmware");
             Ready = Directory.Exists(ProjectDir) && File.Exists(pioExecutablePath);
@@ -60,31 +60,31 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
 
         public async Task RevertFirmware()
         {
-            string appdataFolder = AssetUtils.GetAppDataFolder();
+            var appdataFolder = AssetUtils.GetAppDataFolder();
             if (Directory.Exists(ProjectDir))
             {
                 Directory.Delete(ProjectDir, true);
             }
 
             ProgressChanged?.Invoke("Extracting Firmware", 0, 0);
-            string firmwareZipPath = Path.Combine(appdataFolder, "firmware.zip");
+            var firmwareZipPath = Path.Combine(appdataFolder, "firmware.zip");
             await AssetUtils.ExtractZip("firmware.zip", firmwareZipPath, ProjectDir);
         }
 
         public async Task InitialisePlatformIo()
         {
-            string appdataFolder = AssetUtils.GetAppDataFolder();
-            string pioFolder = Path.Combine(appdataFolder, "platformio");
-            string installerZipPath = Path.Combine(pioFolder, "installer.zip");
-            string installerPath = Path.Combine(pioFolder, "installer");
-            string pioExecutablePath = Path.Combine(pioFolder, "penv", "bin", "platformio");
+            var appdataFolder = AssetUtils.GetAppDataFolder();
+            var pioFolder = Path.Combine(appdataFolder, "platformio");
+            var installerZipPath = Path.Combine(pioFolder, "installer.zip");
+            var installerPath = Path.Combine(pioFolder, "installer");
+            var pioExecutablePath = Path.Combine(pioFolder, "penv", "bin", "platformio");
             _pioExecutable = pioExecutablePath;
 
             // On startup, reinstall the firmware, this will make sure that an update goes out, and also makes sure that the firmware is clean.
             await RevertFirmware();
             var parser = new FileIniDataParser();
             parser.Parser.Configuration.SkipInvalidLines = true;
-            IniData data = parser.ReadFile(Path.Combine(ProjectDir, "platformio.ini"));
+            var data = parser.ReadFile(Path.Combine(ProjectDir, "platformio.ini"));
             foreach (var key in data.Sections)
             {
                 if (key.SectionName.StartsWith("env:"))
@@ -105,7 +105,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                 ProgressChanged?.Invoke("Searching for python", 1, 0);
                 var python = await FindPython();
                 ProgressChanged?.Invoke("Installing Platform.IO", 2, 10);
-                Process installerProcess = new Process();
+                var installerProcess = new Process();
                 installerProcess.StartInfo.FileName = python;
                 installerProcess.StartInfo.Arguments = "-m pioinstaller";
                 installerProcess.StartInfo.EnvironmentVariables["PYTHONPATH"] = installerPath;
@@ -136,9 +136,9 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
 
         public async Task<PlatformIoPort[]?> GetPorts()
         {
-            string appdataFolder = AssetUtils.GetAppDataFolder();
-            string pioFolder = Path.Combine(appdataFolder, "platformio");
-            Process process = new Process();
+            var appdataFolder = AssetUtils.GetAppDataFolder();
+            var pioFolder = Path.Combine(appdataFolder, "platformio");
+            var process = new Process();
             process.EnableRaisingEvents = true;
             process.StartInfo.FileName = _pioExecutable;
             process.StartInfo.WorkingDirectory = ProjectDir;
@@ -152,7 +152,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
 
 
             process.Start();
-            string output = process.StandardOutput.ReadToEnd();
+            var output = process.StandardOutput.ReadToEnd();
             await process.WaitForExitAsync();
             if (output != "")
             {
@@ -168,14 +168,14 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
         {
             PlatformIoError?.Invoke(false);
             PlatformIoWorking?.Invoke(true);
-            double percentageStep = (progressEndingPercentage - progressStartingPercentage) / _environments.Count;
-            double currentProgress = progressStartingPercentage;
-            bool building = environment == null && command.Length == 1;
-            bool uploading = environment != null && command.Length > 1;
-            string appdataFolder = AssetUtils.GetAppDataFolder();
-            string pioFolder = Path.Combine(appdataFolder, "platformio");
+            var percentageStep = (progressEndingPercentage - progressStartingPercentage) / _environments.Count;
+            var currentProgress = progressStartingPercentage;
+            var building = environment == null && command.Length == 1;
+            var uploading = environment != null && command.Length > 1;
+            var appdataFolder = AssetUtils.GetAppDataFolder();
+            var pioFolder = Path.Combine(appdataFolder, "platformio");
             var python = await FindPython();
-            Process process = new Process();
+            var process = new Process();
             process.EnableRaisingEvents = true;
             process.StartInfo.FileName = python;
             process.StartInfo.WorkingDirectory = ProjectDir;
@@ -183,8 +183,8 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
             process.StartInfo.EnvironmentVariables["PYTHONUNBUFFERED"] = "1";
             var args = new List<string>(command);
             args.Insert(0, _pioExecutable);
-            int sections = 5;
-            bool isUsb = false;
+            var sections = 5;
+            var isUsb = false;
             if (environment != null)
             {
                 PlatformIoProgramming?.Invoke(true);
@@ -236,14 +236,14 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
             process.StartInfo.RedirectStandardError = true;
             
             TextChanged?.Invoke("", true);
-            int state = 0;
+            var state = 0;
             process.Start();
             
             // process.BeginOutputReadLine();
             // process.BeginErrorReadLine();
             var buffer = new char[1];
             var hasError = false;
-            bool main = sections == 5;
+            var main = sections == 5;
             while (!process.HasExited)
             {
                 if (state == 0)
@@ -403,8 +403,8 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
 
         private async Task<string?> FindPython()
         {
-            string appdataFolder = AssetUtils.GetAppDataFolder();
-            string pythonFolder = Path.Combine(appdataFolder, "python");
+            var appdataFolder = AssetUtils.GetAppDataFolder();
+            var pythonFolder = Path.Combine(appdataFolder, "python");
             var pythonLoc = Path.Combine(pythonFolder, "python.tar.gz");
             var executables = GetPythonExecutables();
             Directory.CreateDirectory(appdataFolder);
@@ -421,7 +421,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
 
             foreach (var executable in executables)
             {
-                string pythonAppdataExecutable = Path.Combine(pythonFolder, executable);
+                var pythonAppdataExecutable = Path.Combine(pythonFolder, executable);
                 if (File.Exists(pythonAppdataExecutable))
                 {
                     return pythonAppdataExecutable;
@@ -433,7 +433,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
             {
                 ProgressChanged?.Invoke("Downloading python portable", 1, 10);
                 var pythonJsonLoc = Path.Combine(pythonFolder, "python.json");
-                string arch = GetSysType();
+                var arch = GetSysType();
                 using (var download = new HttpClientDownloadWithProgress(
                            "https://api.github.com/repos/indygreg/python-build-standalone/releases/62235403",
                            pythonJsonLoc))
@@ -443,8 +443,8 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
 
                 ;
                 var jsonRelease = File.ReadAllText(pythonJsonLoc);
-                GithubRelease release = GithubRelease.FromJson(jsonRelease);
-                bool found = false;
+                var release = GithubRelease.FromJson(jsonRelease);
+                var found = false;
                 foreach (var asset in release.Assets)
                 {
                     if (asset.Name!.EndsWith($"{arch}-install_only.tar.gz"))
@@ -473,7 +473,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                 {
                     Stream gzipStream = new GZipInputStream(inStream);
 
-                    TarArchive tarArchive = TarArchive.CreateInputTarArchive(gzipStream, Encoding.UTF8);
+                    var tarArchive = TarArchive.CreateInputTarArchive(gzipStream, Encoding.UTF8);
                     tarArchive.ExtractContents(appdataFolder);
                     tarArchive.Close();
 
@@ -485,7 +485,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
 
             foreach (var executable in executables)
             {
-                string pythonAppdataExecutable = Path.Combine(pythonFolder, executable);
+                var pythonAppdataExecutable = Path.Combine(pythonFolder, executable);
                 if (File.Exists(pythonAppdataExecutable))
                 {
                     var unixFileInfo = new UnixFileInfo(pythonAppdataExecutable);
@@ -510,7 +510,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
 
         public string GetSysType()
         {
-            string arch = "unknown";
+            var arch = "unknown";
             switch (RuntimeInformation.OSArchitecture)
             {
                 case Architecture.X86:
