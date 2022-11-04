@@ -53,11 +53,13 @@ If a request with `bRequest` set to `HID_GetReport` (0x01) and with 'wValue' of 
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
 Interesingly, guitars respond with the following id:
+```
  0                   1                   2                   3  
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |      0x00     |      0x82     |      0xf8     |      0x23     |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+```
 
 #### Capabilities 2
 If a request with `bRequest` set to `HID_GetReport` (0x01) and with 'wValue' of 0x0100 is received, and with `bmRequestType` set to `Device To Host, Vendor and Interface` then the following response is required:
