@@ -1,4 +1,4 @@
-## HID Report Descriptor:
+# PS3 Controller
 ```c
 {
         0x05, 0x01, // Usage Page (Generic Desktop Ctrls)
@@ -77,3 +77,4 @@
         0xC0,       // End Collection
 
 };
+```

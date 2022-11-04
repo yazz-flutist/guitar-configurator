@@ -1,8 +1,15 @@
+# Guitar Hero 5 Guitar Neck I2C Format
+
 I2C Address: 0x0D
+
 TWI Freq: 100000hz
+
 Do a 2 byte read from 0x12
+
 first byte: frets, stored in the same way as an xbox 360 controller
+
 second byte: tap bar, below dictionary shows how these values are mapped
+
 ```c#
 static readonly Dictionary<int, BarButton> _mappings = new Dictionary<int, BarButton>() {
     {0x19, BarButton.Green | BarButton.Yellow},

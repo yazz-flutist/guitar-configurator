@@ -37,6 +37,7 @@ The buttons also change slightly from a normal controller. Note that blue and ye
 
 ## VID and PID
 Note that it is a requirement to use the rockband vids and pids for this, which are:
+
 | Device | VID    | PID    |
 | ------ | ------ | ------ |
 | Guitar | 0x12ba | 0x0200 |
@@ -53,5 +54,3 @@ The ID Control Request changes slightly, as we use an id of 0x00, not 0x07. The 
 |      0x00     |      0x00     |      0x00     |      0x00     |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
-
-A LUFA implementation of this controller is in [output_ps3.c](/src/shared/output/output_ps3.c)
