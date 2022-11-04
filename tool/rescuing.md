@@ -10,7 +10,7 @@ You need to short the following reset pins to get into firmware update mode:
 # Pi Pico
 Press the BOOTSEL button and hold it while you connect the other end of the micro USB cable to your computer:
 
-<img src="../assets/images/Pico-bootsel.png" width="50%">
+<img src="../assets/images/pico-bootsel.png" width="50%">
 
 # Pro Micro 
 
@@ -49,9 +49,10 @@ Note that when this is done, you only get around 8 seconds to reprogram the guit
 <img src="../assets/images/pic6.png" width="75%">
 
 8. With the arduino plugged in, short the rst pin to ground twice in quick succession
-9. Quickly pick the serial port that shows up
 
 <img src="../assets/images/promicrorst.png" width="50%">
+
+9. Quickly pick the serial port that shows up
 
 <img src="../assets/images/pic7.png" width="75%">
 
