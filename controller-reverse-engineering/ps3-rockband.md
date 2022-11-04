@@ -37,6 +37,7 @@ The buttons also change slightly from a normal controller. Note that blue and ye
 
 ## VID and PID
 Note that it is a requirement to use the rockband vids and pids for this, which are:
+
 | Device | VID    | PID    |
 | ------ | ------ | ------ |
 | Guitar | 0x12ba | 0x0200 |
