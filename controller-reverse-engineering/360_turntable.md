@@ -1,11 +1,11 @@
+# Xbox 360 DJ Hero Turntable
 
 ## Controller Info
 
-- Type: Gamepad (1)
-- Subtype: 23, not part of XInput standards
-- Hardware IDs:
-  - VID: 
-  - PID: 
+- XInput Type: Gamepad (1)
+- XInput Subtype: 23, not part of XInput standards
+- Vendor ID: `0x1430`
+- Product ID: ? (Unsure if reported by wireless turntables)
 
 ## Input Info
 
@@ -33,7 +33,7 @@ Tables:
 
 - Scratching:
   - Positive is clockwise, negative is counter-clockwise.
-  - Only uses a tiny range (around -64 to +64 in my testing), presumably so as to not register on the Xbox 360 menus.
+  - Only uses a tiny range (within -64 to +64), presumably so as to not register on the Xbox 360 menus.
 
 Crossfader: Right stick Y
 
@@ -46,5 +46,9 @@ Effects knob: Right stick X
 
 Euphoria button: Y button
 
-- Light control: Right vibration
-  - In my testing, first turns on at around 7936 (`0b_0001_1111_0000_0000`), and maxes out at 65535 (`0b_1111_1111_1111_1111`).
+## Vibration Info
+
+Euphoria button light: Right vibration
+
+- Via XInput: First turns on at 7936 (`0x1F00`). Maxes out at 65535 (`0xFFFF`).
+- Note that in the low-level XUSB report, the vibration values are bytes, not shorts. XInput just divides the motor values by 256 before sending them to the driver, so this means the light first turns on at `0x1F` and maxes out at `0xFF`.
