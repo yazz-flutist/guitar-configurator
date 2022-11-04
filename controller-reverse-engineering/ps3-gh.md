@@ -66,5 +66,3 @@ The ID Control Request changes slightly, as we use an id of 0x06, not 0x07. The 
 |      0x00     |      0x00     |      0x00     |      0x00     |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
-
-A LUFA implementation of this controller is in [output_ps3.c](/src/shared/output/output_ps3.c)

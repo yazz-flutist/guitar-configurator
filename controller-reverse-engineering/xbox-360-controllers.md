@@ -2,8 +2,7 @@
 ## Controller Identification
 Xbox 360 controllers use a concept called [WCID](https://github.com/pbatard/libwdi/wiki/WCID-Devices) to identify to windows that they are 360 controllers. 
 
-Wired controllers use a Compatible ID of "XUSB10", and Wireless controllers use a Compatible ID of "XUSB20". 
-This is implemented in [Descriptors.c](/src/shared/lufa/Descriptors.c) and [XInputOutput.cpp](/src/shared/controller/output/XInputOutput.cpp). 
+Wired controllers use a Compatible ID of "XUSB10", and Wireless controllers use a Compatible ID of "XUSB20".
 
 The libwdi github link above gives a lot of information about how to implement this, so I won't go into detail here.
 ## Capabilities
@@ -23,7 +22,6 @@ This descriptor is laid out like the following:
 |      0x08     |      0x03     |      0x00     |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
-This is implemented in [Descriptors.c](../src/shared/output/usb/Descriptors.c). 
 
 ### Control Requests
 Step two is to reply with capabilities packets when specific control requests are sent. These are laid out below:
@@ -81,9 +79,6 @@ If a request with `bRequest` set to `HID_GetReport` (0x01) and with 'wValue' of 
 Seems like this does not change between different types of controllers, as it is the same on both controllers and guitars.
 
 Some of these control requests were taken from the following site: https://forums.vigem.org/topic/45/rogue-xinput-capabilities-bug-part-2.
-
-A LUFA implementation of this controller is in [XInputOutput.cpp](/src/shared/output/output_xinput.c). 
-
 
 ## Interesting findings
 If you don't send capabilities 1, then it is possible for a controller to crash DWM on windows. Some windows store games come with [Windows Gaming Services](https://www.microsoft.com/en-us/p/gaming-services/9mwpm2cqnlhn) on windows 10. It seems that Windows Gaming Services is loaded into DWM by windows, and it has a bug where if capabilites 1 is missing, then it crashes, and it takes DWM with it. This will cause the windows desktop to crash and restart.
