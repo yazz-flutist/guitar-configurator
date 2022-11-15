@@ -45,6 +45,8 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
         public string ProjectDir { get; }
         private readonly List<string> _environments;
 
+        private readonly Process _portProcess;
+
         public bool Ready { get; }
 
         public PlatformIo()
@@ -56,6 +58,18 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
             _pioExecutable = pioExecutablePath;
             ProjectDir = Path.Combine(appdataFolder, "firmware");
             Ready = Directory.Exists(ProjectDir) && File.Exists(pioExecutablePath);
+            
+            _portProcess = new Process();
+            _portProcess.EnableRaisingEvents = true;
+            _portProcess.StartInfo.FileName = _pioExecutable;
+            _portProcess.StartInfo.WorkingDirectory = ProjectDir;
+            _portProcess.StartInfo.EnvironmentVariables["PLATFORMIO_CORE_DIR"] = pioFolder;
+
+            _portProcess.StartInfo.Arguments = "device list --json-output";
+
+            _portProcess.StartInfo.UseShellExecute = false;
+            _portProcess.StartInfo.RedirectStandardOutput = true;
+            _portProcess.StartInfo.RedirectStandardError = true;
         }
 
         public async Task RevertFirmware()
@@ -93,8 +107,8 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                 }
             }
 
-            File.WriteAllText(Path.Combine(ProjectDir, "platformio.ini"),
-                File.ReadAllText(Path.Combine(ProjectDir, "platformio.ini")).Replace("post:ardwiino_script_post.py",
+            await File.WriteAllTextAsync(Path.Combine(ProjectDir, "platformio.ini"),
+                (await File.ReadAllTextAsync(Path.Combine(ProjectDir, "platformio.ini"))).Replace("post:ardwiino_script_post.py",
                     "post:ardwiino_script_post_tool.py"));
             if (!File.Exists(pioExecutablePath))
             {
@@ -136,30 +150,10 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
 
         public async Task<PlatformIoPort[]?> GetPorts()
         {
-            var appdataFolder = AssetUtils.GetAppDataFolder();
-            var pioFolder = Path.Combine(appdataFolder, "platformio");
-            var process = new Process();
-            process.EnableRaisingEvents = true;
-            process.StartInfo.FileName = _pioExecutable;
-            process.StartInfo.WorkingDirectory = ProjectDir;
-            process.StartInfo.EnvironmentVariables["PLATFORMIO_CORE_DIR"] = pioFolder;
-
-            process.StartInfo.Arguments = "device list --json-output";
-
-            process.StartInfo.UseShellExecute = false;
-            process.StartInfo.RedirectStandardOutput = true;
-            process.StartInfo.RedirectStandardError = true;
-
-
-            process.Start();
-            var output = process.StandardOutput.ReadToEnd();
-            await process.WaitForExitAsync();
-            if (output != "")
-            {
-                return PlatformIoPort.FromJson(output);
-            }
-
-            return null;
+            _portProcess.Start();
+            var output = await _portProcess.StandardOutput.ReadToEndAsync();
+            await _portProcess.WaitForExitAsync();
+            return output != "" ? PlatformIoPort.FromJson(output) : null;
         }
 
         public async Task<int> RunPlatformIo(string? environment, string[] command, string progressMessage,
