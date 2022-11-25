@@ -285,7 +285,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                             currentProgress += percentageStep / sections;
                             
 
-                            if (device is Santroller && !isUsb)
+                            if (device is Santroller or Ardwiino && !isUsb)
                             {
                                 device.Bootloader();
                             }
