@@ -44,6 +44,9 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
         private string _pioExecutable;
         public string ProjectDir { get; }
         private readonly List<string> _environments;
+        //TODO: probab
+        //TODO: probably have a nice script to update this, but for now: ` pio pkg list | grep "@"|cut -f1 -d"(" |cut -c 11- | sort -u | wc -l`
+        private const int PackageCount = 17;
 
         private readonly Process _portProcess;
 
@@ -54,7 +57,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
             _environments = new List<string>();
             var appdataFolder = AssetUtils.GetAppDataFolder();
             var pioFolder = Path.Combine(appdataFolder, "platformio");
-            var pioExecutablePath = Path.Combine(pioFolder, "penv", "bin", "platformio");
+            var pioExecutablePath = Path.Combine(appdataFolder, "python", "bin", "platformio");
             _pioExecutable = pioExecutablePath;
             ProjectDir = Path.Combine(appdataFolder, "firmware");
             Ready = Directory.Exists(ProjectDir) && File.Exists(pioExecutablePath);
@@ -87,13 +90,6 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
 
         public async Task InitialisePlatformIo()
         {
-            var appdataFolder = AssetUtils.GetAppDataFolder();
-            var pioFolder = Path.Combine(appdataFolder, "platformio");
-            var installerZipPath = Path.Combine(pioFolder, "installer.zip");
-            var installerPath = Path.Combine(pioFolder, "installer");
-            var pioExecutablePath = Path.Combine(pioFolder, "penv", "bin", "platformio");
-            _pioExecutable = pioExecutablePath;
-
             // On startup, reinstall the firmware, this will make sure that an update goes out, and also makes sure that the firmware is clean.
             await RevertFirmware();
             var parser = new FileIniDataParser();
@@ -110,20 +106,14 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
             await File.WriteAllTextAsync(Path.Combine(ProjectDir, "platformio.ini"),
                 (await File.ReadAllTextAsync(Path.Combine(ProjectDir, "platformio.ini"))).Replace("post:ardwiino_script_post.py",
                     "post:ardwiino_script_post_tool.py"));
-            if (!File.Exists(pioExecutablePath))
+            if (!File.Exists(_pioExecutable))
             {
-                ProgressChanged?.Invoke("Extracting Platform.IO Installer", 0, 0);
-                Directory.CreateDirectory(pioFolder);
-                Directory.CreateDirectory(installerPath);
-                await AssetUtils.ExtractZip("pio-installer.zip", installerZipPath, installerPath);
                 ProgressChanged?.Invoke("Searching for python", 1, 0);
                 var python = await FindPython();
                 ProgressChanged?.Invoke("Installing Platform.IO", 2, 10);
                 var installerProcess = new Process();
                 installerProcess.StartInfo.FileName = python;
-                installerProcess.StartInfo.Arguments = "-m pioinstaller";
-                installerProcess.StartInfo.EnvironmentVariables["PYTHONPATH"] = installerPath;
-                installerProcess.StartInfo.EnvironmentVariables["PLATFORMIO_CORE_DIR"] = pioFolder;
+                installerProcess.StartInfo.Arguments = $"-m pip install platformio==6.1.5";
                 installerProcess.StartInfo.UseShellExecute = false;
                 installerProcess.StartInfo.RedirectStandardOutput = true;
                 installerProcess.StartInfo.RedirectStandardError = true;
@@ -133,11 +123,9 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                 installerProcess.BeginOutputReadLine();
                 installerProcess.BeginErrorReadLine();
                 await installerProcess.WaitForExitAsync();
-                File.Delete(installerZipPath);
-                Directory.Delete(installerPath, true);
                 PlatformIoInstalled?.Invoke();
-                await RunPlatformIo(null, new[]{"run"}, "Building packages", 2, 20, 90, null).ConfigureAwait(false);
-                await RunPlatformIo(null, new[]{"system prune -f"}, "Cleaning up", 2, 90, 90, null).ConfigureAwait(false);
+                await RunPlatformIo(null, new[]{"pkg","install"}, "Installing packages (This may take a while)", 2, 20, 90, null).ConfigureAwait(false);
+                await RunPlatformIo(null, new[]{"system","prune","-f"}, "Cleaning up", 2, 90, 90, null).ConfigureAwait(false);
             }
             else
             {
@@ -162,9 +150,9 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
         {
             PlatformIoError?.Invoke(false);
             PlatformIoWorking?.Invoke(true);
-            var percentageStep = (progressEndingPercentage - progressStartingPercentage) / _environments.Count;
+            var percentageStep = (progressEndingPercentage - progressStartingPercentage) / PackageCount;
             var currentProgress = progressStartingPercentage;
-            var building = environment == null && command.Length == 1;
+            var updating = environment == null && command.Length == 2 && command[1] == "install";
             var uploading = environment != null && command.Length > 1;
             var appdataFolder = AssetUtils.GetAppDataFolder();
             var pioFolder = Path.Combine(appdataFolder, "platformio");
@@ -238,6 +226,9 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
             var buffer = new char[1];
             var hasError = false;
             var main = sections == 5;
+            var uploadPackage = "";
+            var uploadCount = 10;
+            var seen = new List<string>();
             while (!process.HasExited)
             {
                 if (state == 0)
@@ -250,14 +241,16 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                     }
 
                     TextChanged?.Invoke(line, false);
-                    if (building)
+                    if (updating)
                     {
-                        var matches = Regex.Matches(line, @"Processing (.+?) \(.+\)");
+                        var matches = Regex.Matches(line, @".+: Installing (.+)");
                         if (matches.Count > 0)
                         {
-                            ProgressChanged?.Invoke($"{progressMessage} - {matches[0].Groups[1].Value}",
-                                progressState, currentProgress);
-                            currentProgress += percentageStep;
+                            uploadPackage = matches[0].Groups[1].Value;
+                            if (seen.Contains(uploadPackage)) continue;
+                            seen.Add(uploadPackage);
+                            uploadCount = 10;
+                            state = 5;
                         }
                     }
 
@@ -355,20 +348,43 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                             break;
                         }
 
-                        if (state == 1)
+                        switch (state)
                         {
-                            ProgressChanged?.Invoke($"{progressMessage} - Reading Settings", progressState,
-                                currentProgress);
+                            case 1:
+                                ProgressChanged?.Invoke($"{progressMessage} - Reading Settings", progressState,
+                                    currentProgress);
+                                break;
+                            case 2:
+                                ProgressChanged?.Invoke($"{progressMessage} - Uploading", progressState, currentProgress);
+                                break;
+                            case 3:
+                                ProgressChanged?.Invoke($"{progressMessage} - Verifying", progressState, currentProgress);
+                                break;
+                            case 5:
+                                if (buffer[0] == '%')
+                                {
+                                    uploadCount--;
+                                    currentProgress += percentageStep / 10;
+                                }
+                                if (buffer[0] == '\n')
+                                {
+                                    // If a file is downloaded fast, it doesn't hit 100
+                                    if (uploadCount > 0)
+                                    {
+                                        currentProgress += percentageStep / 10 * uploadCount; 
+                                    }
+                                    state = 0;
+                                    break;
+                                }
+                            
+                                ProgressChanged?.Invoke($"{progressMessage} - {uploadPackage}",
+                                    progressState, currentProgress);
+                                break;
                         }
 
-                        if (state == 2)
+                        if (state == 0)
                         {
-                            ProgressChanged?.Invoke($"{progressMessage} - Uploading", progressState, currentProgress);
-                        }
-
-                        if (state == 3)
-                        {
-                            ProgressChanged?.Invoke($"{progressMessage} - Verifying", progressState, currentProgress);
+                            break;
                         }
                     }
                 }
@@ -395,6 +411,33 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
             return process.ExitCode;
         }
 
+        private async Task<string?> SetupVenv(string pythonApp, string pythonFolder)
+        {
+            var penvProcess = new Process();
+            penvProcess.StartInfo.FileName = pythonApp;
+            penvProcess.StartInfo.Arguments = $"-m venv {pythonFolder}";
+            penvProcess.StartInfo.UseShellExecute = false;
+            penvProcess.StartInfo.RedirectStandardOutput = true;
+            penvProcess.StartInfo.RedirectStandardError = true;
+            penvProcess.OutputDataReceived += (sender, e) => TextChanged?.Invoke(e.Data!, false);
+            penvProcess.ErrorDataReceived += (sender, e) => TextChanged?.Invoke(e.Data!, false);
+            penvProcess.Start();
+            penvProcess.BeginOutputReadLine();
+            penvProcess.BeginErrorReadLine();
+            await penvProcess.WaitForExitAsync();
+            var executables = GetPythonExecutables();
+            foreach (var executable in executables)
+            {
+                var pythonAppdataExecutable = Path.Combine(pythonFolder, executable);
+                if (File.Exists(pythonAppdataExecutable))
+                {
+                    return pythonAppdataExecutable;
+                }
+            }
+
+            return null;
+        }
+
         private async Task<string?> FindPython()
         {
             var appdataFolder = AssetUtils.GetAppDataFolder();
@@ -403,22 +446,22 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
             var executables = GetPythonExecutables();
             Directory.CreateDirectory(appdataFolder);
 
-            string? foundExecutable = null;
-            foreach (var executable in executables)
-            {
-                foundExecutable = GetFullPath(executable);
-                if (foundExecutable != null)
-                {
-                    return executable;
-                }
-            }
-
             foreach (var executable in executables)
             {
                 var pythonAppdataExecutable = Path.Combine(pythonFolder, executable);
                 if (File.Exists(pythonAppdataExecutable))
                 {
                     return pythonAppdataExecutable;
+                }
+            }
+
+            string? foundExecutable = null;
+            foreach (var executable in executables)
+            {
+                foundExecutable = GetFullPath(executable);
+                if (foundExecutable != null)
+                {
+                    return await SetupVenv(executable, pythonFolder);
                 }
             }
 
