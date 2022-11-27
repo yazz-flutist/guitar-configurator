@@ -227,7 +227,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
             var hasError = false;
             var main = sections == 5;
             var uploadPackage = "";
-            var uploadCount = 10;
+            var uploadCount = 11;
             var seen = new List<string>();
             while (!process.HasExited)
             {
@@ -364,19 +364,17 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                                 if (buffer[0] == '%')
                                 {
                                     uploadCount--;
-                                    currentProgress += percentageStep / 10;
+                                    currentProgress += percentageStep / 11;
                                 }
                                 if (buffer[0] == '\n')
                                 {
                                     // If a file is downloaded fast, it doesn't hit 100
                                     if (uploadCount > 0)
                                     {
-                                        currentProgress += percentageStep / 10 * uploadCount; 
+                                        currentProgress += percentageStep / 11 * uploadCount; 
                                     }
                                     state = 0;
-                                    break;
                                 }
-                            
                                 ProgressChanged?.Invoke($"{progressMessage} - {uploadPackage}",
                                     progressState, currentProgress);
                                 break;
