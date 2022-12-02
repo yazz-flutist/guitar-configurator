@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using GuitarConfiguratorSharp.NetCore.Configuration.Outputs.Combined;
 using GuitarConfiguratorSharp.NetCore.Configuration.Serialization;
 using GuitarConfiguratorSharp.NetCore.ViewModels;
@@ -22,7 +23,7 @@ public class LedOutput : CombinedOutput
         throw new System.NotImplementedException();
     }
 
-    public override string Generate(bool xbox, bool shared, int debounceIndex, bool combined)
+    public override string Generate(bool xbox, bool shared, int debounceIndex, bool combined, string extra)
     {
         return "";
     }
