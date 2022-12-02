@@ -23,7 +23,7 @@ public class LedOutput : CombinedOutput
         throw new System.NotImplementedException();
     }
 
-    public override string Generate(bool xbox, bool shared, int debounceIndex, bool combined, string extra)
+    public override string Generate(bool xbox, bool shared, List<int> debounceIndex, bool combined, string extra)
     {
         return "";
     }
