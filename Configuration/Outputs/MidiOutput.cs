@@ -38,11 +38,6 @@ public class MidiOutput : OutputAxis
 
     public override bool IsCombined => false;
 
-    public override string? GetLocalisedName()
-    {
-        return Name;
-    }
-
     public override bool IsStrum => false;
 
     public override SerializedOutput Serialize()
