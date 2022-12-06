@@ -25,7 +25,7 @@ Most things about the controller are similar to the standard controller, except 
 The buttons also change slightly from a normal controller. Note that blue and yellow are switch when compared to a GH controller!
 ```
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|     yellow    |     green     |      red      |      blue     |
+|      blue     |     green     |      red      |     yellow    |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |     orange    |       r2      |       l1      |       r1      |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
