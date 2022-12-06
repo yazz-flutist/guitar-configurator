@@ -8,13 +8,13 @@ Most things about the controller are similar to the standard controller, except 
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |            buttons            |      hat      |   left_joy_x  |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|   left_joy_y  |     whammy    |    tap_bar    |  axis_dpad_up |
+|   left_joy_y  |     whammy    |  mode_switch  |    padding    |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|axis_dpad_right| axis_dpad_left| axis_dpad_down|    axis_l2    |
+|    padding    |    padding    |    padding    |    padding    |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|    axis_r2    |  axis_orange  |    axis_l2    |  axis_yellow  |
+|    padding    |    padding    |    padding    |    padding    |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|    axis_red   |   axis_green  |   axis_blue   |accelerometer_x|
+|    padding    |    padding    |    padding    |accelerometer_x|
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |               |        accelerometer_z        |accelerometer_y|
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
