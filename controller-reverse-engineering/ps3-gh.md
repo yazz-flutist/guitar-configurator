@@ -12,17 +12,20 @@ The HID Report layout is below:
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |   left_joy_y  |     whammy    |    tap_bar    |axis_dpad_right|
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-| axis_dpad_left|  axis_dpad_up |   dpad_down   |  axis_orange  |
+| axis_dpad_left|  axis_dpad_up |   dpad_down   |   axis_blue   |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|  axis_yellow  |    axis_red   |   axis_green  |   axis_blue   |
+|   axis_red    |    padding    |    padding    |    padding    |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|    axis_r2    |    axis_l1    |    axis_r1    |accelerometer_x|
+|    padding    |    padding    |    padding    |accelerometer_x|
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |               |        accelerometer_z        |accelerometer_y|
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |               |           gyroscope           |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
+
+### Axis
+Note that dpad_right is reused for yellow, dpad_up is reused for green and dpad_down is reused for orange
 
 ### Tilt
 For tilt, you probably want to use accelerometer x, as the x axis is the axis that changes when you tilt the guitar.
