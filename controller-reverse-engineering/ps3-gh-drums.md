@@ -12,7 +12,7 @@ Most things about the controller are similar to the standard controller, except 
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |    padding    |    padding    |yellow_velocity|  red_velocity |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-| green_velocity| blue_velocity |    padding    |    padding    |
+| green_velocity| blue_velocity |pedal_velocity |orange_velocity|
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |    padding    |    padding    |    padding    |accelerometer_x|
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
