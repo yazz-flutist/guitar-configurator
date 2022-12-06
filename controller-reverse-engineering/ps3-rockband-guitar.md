@@ -40,7 +40,7 @@ Note that it is a requirement to use the rockband vids and pids for this, which 
 
 | Device | VID    | PID    |
 | ------ | ------ | ------ |
-| Drum   | 0x12ba | 0x0210 |
+| Guitar | 0x12ba | 0x0200 |
 
 ## ID Control Request
 The ID Control Request changes slightly, as we use an id of 0x00, not 0x07. The revised request is below:

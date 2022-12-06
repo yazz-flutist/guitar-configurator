@@ -39,7 +39,7 @@ Note that it is a requirement to use the GH vids and pids for the game to detect
 
 | Device | VID    | PID    |
 | ------ | ------ | ------ |
-| Guitar | 0x12ba | 0x0100 |
+| Drum   | 0x12ba | 0x0120 |
 
 ## ID Control Request
 The ID Control Request changes slightly, as we use an id of 0x06, not 0x07. The revised request is below: Note that without this change, the tilt axis will not work.
