@@ -16,7 +16,7 @@ The HID Report layout is below:
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |  axis_yellow  |    axis_red   |   axis_green  |   axis_blue   |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|    axis_r2    |    axis_l1    |    axis_r1    |      tilt     |
+|    axis_r2    |    axis_l1    |    axis_r1    |accelerometer_x|
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |               |        accelerometer_y        |accelerometer_z|
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -25,9 +25,7 @@ The HID Report layout is below:
 ```
 
 ### Tilt
-Note that tilt requires both bits, and goes between 0x0184 and 0x01f7. However, the original guitar just jumps between these values,
-so it is sufficient to use 0x0184 as a neutral position, and 0x01f7 as a tilted position.
-If you compare side-by-side to a regular ps3 controller, you will notice that the accelerometer is just mapped to the accelerometer_x axis on a regular controller.
+For tilt, you probably want to use accelerometer x, as the x axis is the axis that changes when you tilt the guitar.
 
 
 ### Buttons
@@ -35,7 +33,7 @@ The buttons also change slightly from a normal controller.Note that blue and yel
 
 ```
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|      blue     |      red      |     green     |     yellow    |
+|     yellow    |     green     |      red      |      blue     |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |     orange    |       r2      |       l1      |       r1      |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
