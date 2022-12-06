@@ -1,6 +1,8 @@
 # PS3 - Guitar Hero Guitar Controller
 Most things about the controller are similar to the standard controller, except the buttons and axis have different meanings
 
+Interestingly, the ps3 gh guitar is just different to all other rhythm controllers.
+
 ## Hid Report
 The HID Report layout is below:
 Guitar:
@@ -31,7 +33,7 @@ For tilt, you probably want to use accelerometer x, as the x axis is the axis th
 
 
 ### Buttons
-The buttons also change slightly from a normal controller.Note that blue and yellow are switch when compared to a Rockband controller!
+The buttons also change slightly from a normal controller.Note that blue and yellow are switch when compared to all other rhythm controllers!
 
 ```
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
