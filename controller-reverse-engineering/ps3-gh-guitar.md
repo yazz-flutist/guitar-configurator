@@ -16,7 +16,7 @@ Guitar:
 |    padding    |     whammy    |    tap_bar    |axis_dpad_right|
 |               |               |               |  axis_yellow  |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-| axis_dpad_left|  axis_dpad_up |   dpad_down   |   axis_blue   |
+| axis_dpad_left|  axis_dpad_up | axis_dpad_down|   axis_blue   |
 |               |   axis_green  |  axis_orange  |               |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |   axis_red    |    padding    |    padding    |    padding    |
