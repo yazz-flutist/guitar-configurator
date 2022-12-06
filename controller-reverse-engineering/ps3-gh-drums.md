@@ -1,22 +1,18 @@
-# PS3 - Guitar Hero Controller
+# PS3 - Guitar Hero Drum Controller
 Most things about the controller are similar to the standard controller, except the buttons and axis have different meanings
 
-## Hid Report
-The HID Report layout is below:
-
+## HID Report Layout
 ```
  0                   1                   2                   3
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |            buttons            |      hat      |   left_joy_x  |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|   left_joy_y  |     whammy    |    tap_bar    |axis_dpad_right|
-|               |               |               |  axis_yellow  |
+|   left_joy_y  |  right_joy_x  |  right_joy_y  |    padding    |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-| axis_dpad_left|  axis_dpad_up |   dpad_down   |   axis_blue   |
-|               |   axis_green  |  axis_orange  |               |
+|    padding    |    padding    |yellow_velocity|  red_velocity |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|   axis_red    |    padding    |    padding    |    padding    |
+| green_velocity| blue_velocity |    padding    |    padding    |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |    padding    |    padding    |    padding    |accelerometer_x|
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -25,27 +21,18 @@ The HID Report layout is below:
 |               |           gyroscope           |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
-
-### Tilt
-For tilt, you probably want to use accelerometer x, as the x axis is the axis that changes when you tilt the guitar.
-
-
 ### Buttons
-The buttons also change slightly from a normal controller.Note that blue and yellow are switch when compared to a Rockband controller!
-
 ```
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|     yellow    |     green     |      red      |      blue     |
+|      blue     |     green     |      red      |     yellow    |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|     orange    |     pedal     |       l1      |       r1      |
+|      pedal    |     orange    |       l1      |       r1      |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |     select    |     start     | left_stick_in | right_stick_in|
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |       ps      |
 +-+-+-+-+-+-+-+-+
 ```
-### Hat
-Note that for the hat, 0x1f is returned when nothing is held, not 0x08.
 
 ## VIDs and PIDs
 Note that it is a requirement to use the GH vids and pids for the game to detect your controller, which are:
@@ -53,7 +40,6 @@ Note that it is a requirement to use the GH vids and pids for the game to detect
 | Device | VID    | PID    |
 | ------ | ------ | ------ |
 | Guitar | 0x12ba | 0x0100 |
-| Drum   | 0x12ba | 0x0120 |
 
 ## ID Control Request
 The ID Control Request changes slightly, as we use an id of 0x06, not 0x07. The revised request is below: Note that without this change, the tilt axis will not work.

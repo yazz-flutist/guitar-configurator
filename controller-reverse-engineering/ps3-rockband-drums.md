@@ -1,4 +1,4 @@
-# PS3 - Rockband Controller
+# PS3 - Rockband Drums Controller
 Most things about the controller are similar to the standard controller, except the buttons and axis have different meanings
 
 ## HID Report Layout
@@ -8,11 +8,11 @@ Most things about the controller are similar to the standard controller, except 
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |            buttons            |      hat      |   left_joy_x  |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|   left_joy_y  |     whammy    |  mode_switch  |    padding    |
+|   left_joy_y  |  right_joy_x  |  right_joy_y  |    padding    |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|    padding    |    padding    |    padding    |    padding    |
+|    padding    |    padding    |yellow_velocity|  red_velocity |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|    padding    |    padding    |    padding    |    padding    |
+| green_velocity| blue_velocity |    padding    |    padding    |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |    padding    |    padding    |    padding    |accelerometer_x|
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -27,9 +27,9 @@ The buttons also change slightly from a normal controller. Note that blue and ye
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |      blue     |     green     |      red      |     yellow    |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|     orange    |       r2      |       l1      |       r1      |
+|      pedal    |     pedal2    |       l1      |       r1      |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|     select    |     start     | left_stick_in | right_stick_in|
+|     select    |     start     |      tom      |     cymbal    |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |       ps      |
 +-+-+-+-+-+-+-+-+
@@ -40,7 +40,6 @@ Note that it is a requirement to use the rockband vids and pids for this, which 
 
 | Device | VID    | PID    |
 | ------ | ------ | ------ |
-| Guitar | 0x12ba | 0x0200 |
 | Drum   | 0x12ba | 0x0210 |
 
 ## ID Control Request
