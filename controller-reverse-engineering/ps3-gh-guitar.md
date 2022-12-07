@@ -28,6 +28,8 @@ Guitar:
 |               |           gyroscope           |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
+### Axis Fields
+For the fields with multiple buttons, pressing both buttons with return a value of 0, while only pressing one of the two buttons gives 0xFF. For every other axis, pressing the button returns 0xFF.
 ### Tilt
 For tilt, you probably want to use accelerometer x, as the x axis is the axis that changes when you tilt the guitar.
 
