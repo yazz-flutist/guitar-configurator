@@ -12,6 +12,15 @@ public enum Arduino32U4Type
     Micro
 }
 
+public enum UnoMegaType
+{
+    [Description("Arduino Uno")]
+    Uno,
+    [Description("Arduino Mega ADK")]
+    MegaAdk,
+    [Description("Arduino Mega")]
+    Mega
+}
 
 public enum MegaType
 {
