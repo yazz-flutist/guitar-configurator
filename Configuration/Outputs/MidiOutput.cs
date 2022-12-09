@@ -74,4 +74,7 @@ public class MidiOutput : OutputAxis
     public override bool IsKeyboard => false;
     public override bool IsController => false;
     public override bool IsMidi => true;
+    public override void UpdateBindings()
+    {
+    }
 }
