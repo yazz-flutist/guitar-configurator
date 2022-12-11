@@ -31,7 +31,8 @@ public class MidiOutput : OutputAxis
     
     private readonly ObservableAsPropertyHelper<int> _value;
     public int ValueMidi => _value.Value;
-    protected override string GenerateOutput(bool xbox)
+
+    public override string GenerateOutput(bool xbox, bool useReal)
     {
         throw new NotImplementedException();
     }
