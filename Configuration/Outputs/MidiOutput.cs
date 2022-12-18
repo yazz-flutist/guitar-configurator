@@ -28,6 +28,8 @@ public class MidiOutput : OutputAxis
     public int Command { get; }
     public int Pitch { get; }
     public MidiType MidiType { get; }
+
+    public override bool Valid => true;
     
     private readonly ObservableAsPropertyHelper<int> _value;
     public int ValueMidi => _value.Value;
