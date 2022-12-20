@@ -41,31 +41,34 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
 
         public event PlatformIoInstalledHandler? PlatformIoInstalled;
 
-        private string _pioExecutable;
-        public string ProjectDir { get; }
-        private readonly List<string> _environments;
+        private readonly string _pioExecutable;
+
+        public string FirmwareDir { get; }
+
         //TODO: probab
         //TODO: probably have a nice script to update this, but for now: ` pio pkg list | grep "@"|cut -f1 -d"(" |cut -c 11- | sort -u | wc -l`
         private const int PackageCount = 17;
 
         private readonly Process _portProcess;
 
-        public bool Ready { get; }
-
         public PlatformIo()
         {
-            _environments = new List<string>();
             var appdataFolder = AssetUtils.GetAppDataFolder();
+            if (!File.Exists(appdataFolder))
+            {
+                Directory.CreateDirectory(appdataFolder);
+            }
+
             var pioFolder = Path.Combine(appdataFolder, "platformio");
+            //TODO: is this correct for windows?
             var pioExecutablePath = Path.Combine(appdataFolder, "python", "bin", "platformio");
             _pioExecutable = pioExecutablePath;
-            ProjectDir = Path.Combine(appdataFolder, "firmware");
-            Ready = Directory.Exists(ProjectDir) && File.Exists(pioExecutablePath);
-            
+            FirmwareDir = Path.Combine(appdataFolder, "firmware");
+
             _portProcess = new Process();
             _portProcess.EnableRaisingEvents = true;
             _portProcess.StartInfo.FileName = _pioExecutable;
-            _portProcess.StartInfo.WorkingDirectory = ProjectDir;
+            _portProcess.StartInfo.WorkingDirectory = FirmwareDir;
             _portProcess.StartInfo.EnvironmentVariables["PLATFORMIO_CORE_DIR"] = pioFolder;
 
             _portProcess.StartInfo.Arguments = "device list --json-output";
@@ -78,39 +81,29 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
         public async Task RevertFirmware()
         {
             var appdataFolder = AssetUtils.GetAppDataFolder();
-            if (Directory.Exists(ProjectDir))
+            if (Directory.Exists(FirmwareDir))
             {
-                Directory.Delete(ProjectDir, true);
+                Directory.Delete(FirmwareDir, true);
             }
 
             ProgressChanged?.Invoke("Extracting Firmware", 0, 0);
             var firmwareZipPath = Path.Combine(appdataFolder, "firmware.zip");
-            await AssetUtils.ExtractZip("firmware.zip", firmwareZipPath, ProjectDir);
+            await AssetUtils.ExtractZip("firmware.zip", firmwareZipPath, FirmwareDir);
         }
 
         public async Task InitialisePlatformIo()
         {
             // On startup, reinstall the firmware, this will make sure that an update goes out, and also makes sure that the firmware is clean.
             await RevertFirmware();
-            var parser = new FileIniDataParser();
-            parser.Parser.Configuration.SkipInvalidLines = true;
-            var data = parser.ReadFile(Path.Combine(ProjectDir, "platformio.ini"));
-            foreach (var key in data.Sections)
-            {
-                if (key.SectionName.StartsWith("env:"))
-                {
-                    _environments.Add(key.SectionName.Split(':')[1]);
-                }
-            }
-
-            await File.WriteAllTextAsync(Path.Combine(ProjectDir, "platformio.ini"),
-                (await File.ReadAllTextAsync(Path.Combine(ProjectDir, "platformio.ini"))).Replace("post:ardwiino_script_post.py",
+            await File.WriteAllTextAsync(Path.Combine(FirmwareDir, "platformio.ini"),
+                (await File.ReadAllTextAsync(Path.Combine(FirmwareDir, "platformio.ini"))).Replace(
+                    "post:ardwiino_script_post.py",
                     "post:ardwiino_script_post_tool.py"));
             if (!File.Exists(_pioExecutable))
             {
                 ProgressChanged?.Invoke("Searching for python", 1, 0);
                 var python = await FindPython();
-                ProgressChanged?.Invoke("Installing Platform.IO", 2, 10);
+                ProgressChanged?.Invoke("Installing Platform.IO", 2, 60);
                 var installerProcess = new Process();
                 installerProcess.StartInfo.FileName = python;
                 installerProcess.StartInfo.Arguments = $"-m pip install platformio==6.1.5";
@@ -122,10 +115,13 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                 installerProcess.Start();
                 installerProcess.BeginOutputReadLine();
                 installerProcess.BeginErrorReadLine();
-                await installerProcess.WaitForExitAsync();
+                await installerProcess.WaitForExitAsync().ConfigureAwait(false);
                 PlatformIoInstalled?.Invoke();
-                await RunPlatformIo(null, new[]{"pkg","install"}, "Installing packages (This may take a while)", 2, 20, 90, null).ConfigureAwait(false);
-                await RunPlatformIo(null, new[]{"system","prune","-f"}, "Cleaning up", 2, 90, 90, null).ConfigureAwait(false);
+                await RunPlatformIo(null, new[] { "pkg", "install" }, "Installing packages (This may take a while)",
+                    2,
+                    60, 90, null).ConfigureAwait(false);
+                await RunPlatformIo(null, new[] { "system", "prune", "-f" }, "Cleaning up", 2, 90, 90, null)
+                    .ConfigureAwait(false);
             }
             else
             {
@@ -160,7 +156,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
             var process = new Process();
             process.EnableRaisingEvents = true;
             process.StartInfo.FileName = python;
-            process.StartInfo.WorkingDirectory = ProjectDir;
+            process.StartInfo.WorkingDirectory = FirmwareDir;
             process.StartInfo.EnvironmentVariables["PLATFORMIO_CORE_DIR"] = pioFolder;
             process.StartInfo.EnvironmentVariables["PYTHONUNBUFFERED"] = "1";
             var args = new List<string>(command);
@@ -174,6 +170,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                 {
                     sections = 10;
                 }
+
                 if (environment.EndsWith("_usb"))
                 {
                     ProgressChanged?.Invoke($"{progressMessage} - Looking for device", progressState, currentProgress);
@@ -210,17 +207,19 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                     }
                 }
             }
+
             //Some pio stuff uses Standard Output, some uses Standard Error, its easier to just flatten both of those to a single stream
-            process.StartInfo.Arguments = $"-c \"import subprocess;subprocess.run([{string.Join(",",args.Select(s => $"'{s}'"))}],stderr=subprocess.STDOUT)\"";
+            process.StartInfo.Arguments =
+                $"-c \"import subprocess;subprocess.run([{string.Join(",", args.Select(s => $"'{s}'"))}],stderr=subprocess.STDOUT)\"";
 
             process.StartInfo.UseShellExecute = false;
             process.StartInfo.RedirectStandardOutput = true;
             process.StartInfo.RedirectStandardError = true;
-            
+
             TextChanged?.Invoke("", true);
             var state = 0;
             process.Start();
-            
+
             // process.BeginOutputReadLine();
             // process.BeginErrorReadLine();
             var buffer = new char[1];
@@ -271,18 +270,20 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                                 device.Bootloader();
                             }
                         }
+
                         if (line.StartsWith("Looking for upload port..."))
                         {
                             ProgressChanged?.Invoke($"{progressMessage} - Looking for port", progressState,
                                 currentProgress);
                             currentProgress += percentageStep / sections;
-                            
+
 
                             if (device is Santroller or Ardwiino && !isUsb)
                             {
                                 device.Bootloader();
                             }
                         }
+
                         if (line.Contains("SUCCESS"))
                         {
                             if (device is PicoDevice || sections == 5)
@@ -319,7 +320,8 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                         {
                             main = true;
                             continue;
-                        } 
+                        }
+
                         break;
                     }
 
@@ -355,10 +357,12 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                                     currentProgress);
                                 break;
                             case 2:
-                                ProgressChanged?.Invoke($"{progressMessage} - Uploading", progressState, currentProgress);
+                                ProgressChanged?.Invoke($"{progressMessage} - Uploading", progressState,
+                                    currentProgress);
                                 break;
                             case 3:
-                                ProgressChanged?.Invoke($"{progressMessage} - Verifying", progressState, currentProgress);
+                                ProgressChanged?.Invoke($"{progressMessage} - Verifying", progressState,
+                                    currentProgress);
                                 break;
                             case 5:
                                 if (buffer[0] == '%')
@@ -366,15 +370,18 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                                     uploadCount--;
                                     currentProgress += percentageStep / 11;
                                 }
+
                                 if (buffer[0] == '\n')
                                 {
                                     // If a file is downloaded fast, it doesn't hit 100
                                     if (uploadCount > 0)
                                     {
-                                        currentProgress += percentageStep / 11 * uploadCount; 
+                                        currentProgress += percentageStep / 11 * uploadCount;
                                     }
+
                                     state = 0;
                                 }
+
                                 ProgressChanged?.Invoke($"{progressMessage} - {uploadPackage}",
                                     progressState, currentProgress);
                                 break;
@@ -411,18 +418,34 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
 
         private async Task<string?> SetupVenv(string pythonApp, string pythonFolder)
         {
+            var error = false;
             var penvProcess = new Process();
             penvProcess.StartInfo.FileName = pythonApp;
             penvProcess.StartInfo.Arguments = $"-m venv {pythonFolder}";
             penvProcess.StartInfo.UseShellExecute = false;
             penvProcess.StartInfo.RedirectStandardOutput = true;
             penvProcess.StartInfo.RedirectStandardError = true;
-            penvProcess.OutputDataReceived += (sender, e) => TextChanged?.Invoke(e.Data!, false);
+            penvProcess.OutputDataReceived += (sender, e) =>
+            {
+                TextChanged?.Invoke(e.Data!, false);
+                // No support for venv here, so just fall back to downloading python in that case.
+                if (e.Data != null && e.Data!.Contains("ensurepip is not"))
+                {
+                    error = true;
+                    Directory.Delete(pythonFolder, true);
+                    Console.WriteLine("Stdout");
+                }
+            };
             penvProcess.ErrorDataReceived += (sender, e) => TextChanged?.Invoke(e.Data!, false);
             penvProcess.Start();
             penvProcess.BeginOutputReadLine();
             penvProcess.BeginErrorReadLine();
             await penvProcess.WaitForExitAsync();
+            if (error)
+            {
+                return null;
+            }
+
             var executables = GetPythonExecutables();
             foreach (var executable in executables)
             {
@@ -457,9 +480,11 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
             foreach (var executable in executables)
             {
                 foundExecutable = GetFullPath(executable);
-                if (foundExecutable != null)
+                if (foundExecutable == null) continue;
+                var ret = await SetupVenv(executable, pythonFolder);
+                if (ret != null)
                 {
-                    return await SetupVenv(executable, pythonFolder);
+                    return ret;
                 }
             }
 
@@ -487,6 +512,7 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
                         using (var download =
                                new HttpClientDownloadWithProgress(asset.BrowserDownloadUrl!.ToString(), pythonLoc))
                         {
+                            // This isnt right, the percentage bar goes too far
                             download.ProgressChanged += (totalFileSize, totalBytesDownloaded, percentage) =>
                                 ProgressChanged?.Invoke("Downloading python portable", 1, 20 + (percentage * 0.4) ?? 0);
                             await download.StartDownload().ConfigureAwait(false);
@@ -534,10 +560,10 @@ namespace GuitarConfiguratorSharp.NetCore.Utils
 
         public string[] GetPythonExecutables()
         {
-            var executables = new[] {"python3", "python", Path.Combine("bin", "python3.10")};
+            var executables = new[] { "python3", "python", Path.Combine("bin", "python3.10") };
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                executables = new[] {"python.exe"};
+                executables = new[] { "python.exe" };
             }
 
             return executables;
