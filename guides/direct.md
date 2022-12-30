@@ -23,13 +23,13 @@ If you are unfamiliar with microcontrollers, you may also be unfamiliar with PCB
 
 ## Supplies
 * One of the following Microcontrollers:
+  * Pi Pico (I recommend this the most, as it is the easiest to get started with and for most people it will be easier to purchase, and it runs at 3.3v so it works for everything.)
   * Arduino Pro Micro (3.3v)
   * Arduino Pro Micro (5v)
   * Arduino Leonardo
   * Arduino Micro
   * Arduino Uno
   * Arduino Mega
-  * Pi Pico
 * A basic tilt switch (if you want tilt) (sometimes called a Mercury switch or ball tilt switch). 
   * It is recommended to use two, as this can help avoid accidental activations (this is what is done in some offical guitars)  
   * I know some people use the SW-520D (which is a ball tilt switch), I myself just use some mercury tilt sensors that my local electronics shop sells.
