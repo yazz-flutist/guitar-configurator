@@ -1,7 +1,7 @@
 # Building an Adaptor for a Wii Controller
 ## You will need
 * One of the following Arduinos
-  * Pi Pico
+  * Pi Pico (I recommend this the most, as it is the easiest to get started with and for most people it will be easier to purchase, and it runs at 3.3v so it works for everything.)
   * Arduino Pro Micro (3.3v)
   * Arduino Pro Micro (5v)
   * Arduino Leonardo
