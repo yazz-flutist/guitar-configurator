@@ -1,8 +1,8 @@
 # Building an Adaptor for a PS2 Controller
 ## You will need
 * One of the following Arduinos:
+  * Pi Pico (I recommend this the most, as it is the easiest to get started with and for most people it will be easier to purchase, and it runs at 3.3v so it works for everything.)
   * Arduino Pro Micro (3.3v)
-  * Pi Pico
   * With the following devices, you will need the following level shifter: https://learn.sparkfun.com/tutorials/bi-directional-logic-level-converter-hookup-guide/all
     * Arduino Leonardo
     * Arduino Micro
