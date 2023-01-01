@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace GuitarConfiguratorSharp.NetCore.Configuration;
+namespace GuitarConfigurator.NetCore.Configuration;
 
 public interface ITwi
 {

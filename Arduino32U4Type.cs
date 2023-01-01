@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace GuitarConfiguratorSharp.NetCore;
+namespace GuitarConfigurator.NetCore;
 
 public enum Arduino32U4Type
 {

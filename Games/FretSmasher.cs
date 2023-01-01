@@ -1,10 +1,8 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 
-namespace GuitarConfiguratorSharp.NetCore.Games;
+namespace GuitarConfigurator.NetCore.Games;
 
 public class FretSmasher
 {

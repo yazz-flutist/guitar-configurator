@@ -1,7 +1,7 @@
 using System;
 using System.Text.Json;
 
-namespace GuitarConfiguratorSharp.NetCore.Utils
+namespace GuitarConfigurator.NetCore.Utils
 {
     public partial class GithubRelease
     {

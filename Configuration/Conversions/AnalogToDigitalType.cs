@@ -1,4 +1,4 @@
-namespace GuitarConfiguratorSharp.NetCore.Configuration.Conversions;
+namespace GuitarConfigurator.NetCore.Configuration.Conversions;
 
 public enum AnalogToDigitalType
 {

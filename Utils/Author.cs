@@ -1,6 +1,6 @@
 using System;
 
-namespace GuitarConfiguratorSharp.NetCore.Utils;
+namespace GuitarConfigurator.NetCore.Utils;
 
 public class Author
 {

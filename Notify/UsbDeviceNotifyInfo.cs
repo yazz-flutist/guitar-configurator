@@ -27,7 +27,6 @@ namespace GuitarConfigurator.NetCore.Notify;
 
 using System;
 using System.Runtime.InteropServices;
-using LibUsbDotNet.DeviceNotify.Internal;
 using LibUsbDotNet.Main;
 
 /// <summary> Describes the USB device that caused the notification.

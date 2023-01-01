@@ -1,13 +1,11 @@
 using System;
-using System.Reactive;
 using System.Reactive.Linq;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
-using Avalonia.Threading;
-using GuitarConfiguratorSharp.NetCore.ViewModels;
+using GuitarConfigurator.NetCore.ViewModels;
 using ReactiveUI;
 
-namespace GuitarConfiguratorSharp.NetCore.Views
+namespace GuitarConfigurator.NetCore.Views
 {
     public class UnoShortWindow : ReactiveWindow<ShowUnoShortWindowViewModel>
     {

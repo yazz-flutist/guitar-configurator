@@ -1,16 +1,12 @@
 using System;
 using System.IO;
-using System.Reactive;
 using System.Reflection;
 using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
-using GuitarConfiguratorSharp.NetCore.Configuration.Outputs;
-using GuitarConfiguratorSharp.NetCore.Configuration.Types;
 using ReactiveUI;
 
-namespace GuitarConfiguratorSharp.NetCore.ViewModels;
+namespace GuitarConfigurator.NetCore.ViewModels;
 
 public class ShowUnoShortWindowViewModel : ReactiveObject
 {

@@ -3,7 +3,7 @@ using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace GuitarConfiguratorSharp.NetCore.Utils
+namespace GuitarConfigurator.NetCore.Utils
 {
     public class HttpClientDownloadWithProgress : IDisposable
     {
