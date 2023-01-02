@@ -1,3 +1,4 @@
+using LibUsbDotNet;
 using LibUsbDotNet.DeviceNotify;
 
 namespace GuitarConfigurator.NetCore.Notify;
@@ -34,12 +35,21 @@ using System.Runtime.InteropServices;
 /// </remarks>
 public class WindowsDeviceNotifierAvalonia : IDeviceNotifier
 {
+    // TODO: we could just generate a new guid for santroller devices, and then they wouldn't show up in the old
+    public static readonly Guid SantrollerGUID = new Guid("DF59037D-7C92-4155-AC12-7D700A313D79");
+    public static readonly Guid ArdwiinoGUID = new Guid("DF59037D-7C92-4155-AC12-7D700A313D78");
     private readonly DevBroadcastDeviceinterface mDevInterface =
         new DevBroadcastDeviceinterface(new Guid("A5DCBF10-6530-11D2-901F-00C04FB951ED"));
+    private readonly DevBroadcastDeviceinterface mDevInterfaceSantroller =
+        new DevBroadcastDeviceinterface(SantrollerGUID);
+    private readonly DevBroadcastDeviceinterface mDevInterfaceArdwiino =
+        new DevBroadcastDeviceinterface(ArdwiinoGUID);
 
-    private SafeNotifyHandle mDevInterfaceHandle;
+    private SafeNotifyHandle? mDevInterfaceHandle;
+    private SafeNotifyHandle? mDevInterfaceHandleSantroller;
+    private SafeNotifyHandle? mDevInterfaceHandleArdwiino;
     private bool mEnabled = true;
-    private NotificationWindow mNotifyWindow;
+    private NotificationWindow? mNotifyWindow;
 
     ///<summary>
     /// Creates an instance of the <see cref="WindowsDeviceNotifier"/> class.
@@ -51,6 +61,7 @@ public class WindowsDeviceNotifierAvalonia : IDeviceNotifier
     public WindowsDeviceNotifierAvalonia()
     {
         mNotifyWindow = new NotificationWindow(OnDeviceChange);
+        // mNotifyWindow.Show(false, false );
         //TODO: if this all works, then we need to hide the window probably.
         RegisterDeviceInterface(mNotifyWindow.Handle.Handle);
     }
@@ -70,13 +81,13 @@ public class WindowsDeviceNotifierAvalonia : IDeviceNotifier
     /// <summary>
     /// Main Notify event for all device notifications.
     /// </summary>
-    public event EventHandler<DeviceNotifyEventArgs> OnDeviceNotify;
+    public event EventHandler<DeviceNotifyEventArgs>? OnDeviceNotify;
 
     #endregion
 
     [DllImport("user32.dll", SetLastError = true, EntryPoint = "RegisterDeviceNotificationA", CharSet = CharSet.Ansi)]
     private static extern SafeNotifyHandle RegisterDeviceNotification(IntPtr hRecipient,
-        [MarshalAs(UnmanagedType.AsAny), In] object notificationFilter,
+        [MarshalAs(UnmanagedType.LPStruct), In] DevBroadcastDeviceinterface notificationFilter,
         int flags);
 
     [DllImport("user32.dll", SetLastError = true)]
@@ -88,25 +99,32 @@ public class WindowsDeviceNotifierAvalonia : IDeviceNotifier
     ///
     ~WindowsDeviceNotifierAvalonia()
     {
-        if (mNotifyWindow != null) mNotifyWindow.Dispose();
+        mNotifyWindow?.Dispose();
         mNotifyWindow = null;
 
-        if (mDevInterfaceHandle != null) mDevInterfaceHandle.Dispose();
+        mDevInterfaceHandle?.Dispose();
         mDevInterfaceHandle = null;
+
+        mDevInterfaceHandleSantroller?.Dispose();
+        mDevInterfaceHandleSantroller = null;
+
+        mDevInterfaceHandleArdwiino?.Dispose();
+        mDevInterfaceHandleArdwiino = null;
     }
 
     private bool RegisterDeviceInterface(IntPtr windowHandle)
     {
-        if (mDevInterfaceHandle != null)
-        {
-            mDevInterfaceHandle.Dispose();
-            mDevInterfaceHandle = null;
-        }
+        mDevInterfaceHandle?.Dispose();
+        mDevInterfaceHandle = null;
+        mDevInterfaceHandleSantroller?.Dispose();
+        mDevInterfaceHandleSantroller = null;
 
         if (windowHandle != IntPtr.Zero)
         {
             mDevInterfaceHandle = RegisterDeviceNotification(windowHandle, mDevInterface, 0);
-            if (mDevInterfaceHandle != null && !mDevInterfaceHandle.IsInvalid)
+            mDevInterfaceHandleArdwiino = RegisterDeviceNotification(windowHandle, mDevInterfaceArdwiino, 0);
+            mDevInterfaceHandleSantroller = RegisterDeviceNotification(windowHandle, mDevInterfaceSantroller, 0);
+            if (mDevInterfaceHandle != null && !mDevInterfaceHandle.IsInvalid && mDevInterfaceHandleArdwiino != null && !mDevInterfaceHandleArdwiino.IsInvalid && mDevInterfaceHandleSantroller != null && !mDevInterfaceHandleSantroller.IsInvalid)
                 return true;
             return false;
         }
@@ -114,16 +132,42 @@ public class WindowsDeviceNotifierAvalonia : IDeviceNotifier
         return false;
     }
 
+    public static string? FindProduct(UsbDevice dev) {
+        var guid = new Guid(dev.DevicePath.Split("{")[1].Replace("}",""));
+        if (guid == SantrollerGUID) {
+            return "Santroller";
+        } else if (guid == ArdwiinoGUID) {
+            return "Ardwiino";
+        }
+
+        return null;
+    }
+
+    public static string? FindSerial(UsbDevice dev) {
+        var guid = new Guid(dev.DevicePath.Split("{")[1].Replace("}",""));
+        // go up to the parent, and that will give us a way to get the path
+        // https://github.com/sanjay900/guitar-configurator/blob/v9.1.2/hotplug/winhotplug.cpp
+
+        return null;
+    }
+
+    public static int? FindRev(UsbDevice dev) {
+        var path = dev.DevicePath;
+        dev.Close();
+        LibUsbDotNet.WinUsb.WinUsbDevice dev2;
+        var test = LibUsbDotNet.WinUsb.WinUsbDevice.Open(path, out dev2);
+        return null;
+    }
 
     private void OnDeviceChange(uint msg, IntPtr wParam, IntPtr lParam)
     {
         if (!mEnabled) return;
         if (lParam != IntPtr.Zero)
         {
-            EventHandler<DeviceNotifyEventArgs> temp = OnDeviceNotify;
-            if (!ReferenceEquals(temp, null))
+            EventHandler<DeviceNotifyEventArgs>? temp = OnDeviceNotify;
+            if (temp != null)
             {
-                DeviceNotifyEventArgs args;
+                DeviceNotifyEventArgs? args;
                 DevBroadcastHdr hdr = new DevBroadcastHdr();
                 Marshal.PtrToStructure(lParam, hdr);
                 switch (hdr.DeviceType)
@@ -138,7 +182,7 @@ public class WindowsDeviceNotifierAvalonia : IDeviceNotifier
                         break;
                 }
 
-                if (!ReferenceEquals(args, null)) temp(this, args);
+                if (args != null) temp(this, args);
             }
         }
     }

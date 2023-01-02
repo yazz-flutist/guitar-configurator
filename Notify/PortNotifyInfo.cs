@@ -39,7 +39,7 @@ public class PortNotifyInfo : IPortNotifyInfo
     {
         Marshal.PtrToStructure(lParam, mBaseHdr);
         IntPtr pName = new IntPtr(lParam.ToInt64() + Marshal.OffsetOf(typeof (DevBroadcastPort), "mNameHolder").ToInt64());
-        mName = Marshal.PtrToStringUni(pName);
+        mName = Marshal.PtrToStringUni(pName)!;
     }
 
     #region IPortNotifyInfo Members

@@ -36,14 +36,14 @@ public class UsbDeviceNotifyInfo : IUsbDeviceNotifyInfo
 {
     private readonly DevBroadcastDeviceinterface mBaseHdr = new DevBroadcastDeviceinterface();
     private readonly string mName;
-    private UsbSymbolicName mSymbolicName;
+    private UsbSymbolicName? mSymbolicName;
 
     internal UsbDeviceNotifyInfo(IntPtr lParam)
     {
         Marshal.PtrToStructure(lParam, mBaseHdr);
         IntPtr pName = new IntPtr(lParam.ToInt64() +
                                   Marshal.OffsetOf(typeof(DevBroadcastDeviceinterface), "mNameHolder").ToInt64());
-        mName = Marshal.PtrToStringUni(pName);
+        mName = Marshal.PtrToStringUni(pName)!;
     }
 
     #region IUsbDeviceNotifyInfo Members
@@ -55,7 +55,7 @@ public class UsbDeviceNotifyInfo : IUsbDeviceNotifyInfo
     {
         get
         {
-            if (ReferenceEquals(mSymbolicName, null))
+            if (mSymbolicName == null)
                 mSymbolicName = UsbSymbolicName.Parse(mName);
 
             return mSymbolicName;
@@ -121,8 +121,8 @@ public class UsbDeviceNotifyInfo : IUsbDeviceNotifyInfo
     /// <returns>True on success.</returns>
     public bool Open(out UsbDevice usbDevice)
     {
-        LibUsbDotNet.LibUsb.LibUsbDevice libUsbDevice;
-        bool result = LibUsbDotNet.LibUsb.LibUsbDevice.Open(Name, out libUsbDevice);
+        LibUsbDotNet.WinUsb.WinUsbDevice libUsbDevice;
+        bool result = LibUsbDotNet.WinUsb.WinUsbDevice.Open(Name, out libUsbDevice);
         usbDevice = libUsbDevice;
         return result;
     }
