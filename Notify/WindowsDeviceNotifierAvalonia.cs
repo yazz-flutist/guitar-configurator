@@ -1,5 +1,11 @@
+using System.Collections.Generic;
+using System.Text;
 using LibUsbDotNet;
 using LibUsbDotNet.DeviceNotify;
+using LibUsbDotNet.DeviceNotify.Info;
+using LibUsbDotNet.WinUsb;
+using LibUsbDotNet.Main;
+using Microsoft.Win32;
 
 namespace GuitarConfigurator.NetCore.Notify;
 
@@ -37,10 +43,14 @@ public class WindowsDeviceNotifierAvalonia : IDeviceNotifier
 {
     public static readonly Guid SantrollerGUID = new Guid("DF59037D-7C92-4155-AC12-7D700A313D79");
     public static readonly Guid ArdwiinoGUID = new Guid("DF59037D-7C92-4155-AC12-7D700A313D78");
+
+    public static readonly Guid UsbGUID = new Guid("A5DCBF10-6530-11D2-901F-00C04FB951ED");
     private readonly DevBroadcastDeviceinterface mDevInterface =
-        new DevBroadcastDeviceinterface(new Guid("A5DCBF10-6530-11D2-901F-00C04FB951ED"));
+        new DevBroadcastDeviceinterface(UsbGUID);
+
     private readonly DevBroadcastDeviceinterface mDevInterfaceSantroller =
         new DevBroadcastDeviceinterface(SantrollerGUID);
+
     private readonly DevBroadcastDeviceinterface mDevInterfaceArdwiino =
         new DevBroadcastDeviceinterface(ArdwiinoGUID);
 
@@ -64,7 +74,6 @@ public class WindowsDeviceNotifierAvalonia : IDeviceNotifier
         //TODO: if this all works, then we need to hide the window probably.
         RegisterDeviceInterface(mNotifyWindow.Handle.Handle);
     }
-
     #region IDeviceNotifier Members
 
     ///<summary>
@@ -86,7 +95,8 @@ public class WindowsDeviceNotifierAvalonia : IDeviceNotifier
 
     [DllImport("user32.dll", SetLastError = true, EntryPoint = "RegisterDeviceNotificationA", CharSet = CharSet.Ansi)]
     private static extern SafeNotifyHandle RegisterDeviceNotification(IntPtr hRecipient,
-        [MarshalAs(UnmanagedType.LPStruct), In] DevBroadcastDeviceinterface notificationFilter,
+        [MarshalAs(UnmanagedType.LPStruct), In]
+        DevBroadcastDeviceinterface notificationFilter,
         int flags);
 
     [DllImport("user32.dll", SetLastError = true)]
@@ -123,7 +133,9 @@ public class WindowsDeviceNotifierAvalonia : IDeviceNotifier
             mDevInterfaceHandle = RegisterDeviceNotification(windowHandle, mDevInterface, 0);
             mDevInterfaceHandleArdwiino = RegisterDeviceNotification(windowHandle, mDevInterfaceArdwiino, 0);
             mDevInterfaceHandleSantroller = RegisterDeviceNotification(windowHandle, mDevInterfaceSantroller, 0);
-            if (mDevInterfaceHandle != null && !mDevInterfaceHandle.IsInvalid && mDevInterfaceHandleArdwiino != null && !mDevInterfaceHandleArdwiino.IsInvalid && mDevInterfaceHandleSantroller != null && !mDevInterfaceHandleSantroller.IsInvalid)
+            if (mDevInterfaceHandle != null && !mDevInterfaceHandle.IsInvalid && mDevInterfaceHandleArdwiino != null &&
+                !mDevInterfaceHandleArdwiino.IsInvalid && mDevInterfaceHandleSantroller != null &&
+                !mDevInterfaceHandleSantroller.IsInvalid)
                 return true;
             return false;
         }
