@@ -35,7 +35,6 @@ using System.Runtime.InteropServices;
 /// </remarks>
 public class WindowsDeviceNotifierAvalonia : IDeviceNotifier
 {
-    // TODO: we could just generate a new guid for santroller devices, and then they wouldn't show up in the old
     public static readonly Guid SantrollerGUID = new Guid("DF59037D-7C92-4155-AC12-7D700A313D79");
     public static readonly Guid ArdwiinoGUID = new Guid("DF59037D-7C92-4155-AC12-7D700A313D78");
     private readonly DevBroadcastDeviceinterface mDevInterface =
@@ -130,33 +129,6 @@ public class WindowsDeviceNotifierAvalonia : IDeviceNotifier
         }
 
         return false;
-    }
-
-    public static string? FindProduct(UsbDevice dev) {
-        var guid = new Guid(dev.DevicePath.Split("{")[1].Replace("}",""));
-        if (guid == SantrollerGUID) {
-            return "Santroller";
-        } else if (guid == ArdwiinoGUID) {
-            return "Ardwiino";
-        }
-
-        return null;
-    }
-
-    public static string? FindSerial(UsbDevice dev) {
-        var guid = new Guid(dev.DevicePath.Split("{")[1].Replace("}",""));
-        // go up to the parent, and that will give us a way to get the path
-        // https://github.com/sanjay900/guitar-configurator/blob/v9.1.2/hotplug/winhotplug.cpp
-
-        return null;
-    }
-
-    public static int? FindRev(UsbDevice dev) {
-        var path = dev.DevicePath;
-        dev.Close();
-        LibUsbDotNet.WinUsb.WinUsbDevice dev2;
-        var test = LibUsbDotNet.WinUsb.WinUsbDevice.Open(path, out dev2);
-        return null;
     }
 
     private void OnDeviceChange(uint msg, IntPtr wParam, IntPtr lParam)
