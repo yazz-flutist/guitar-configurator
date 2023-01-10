@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Reactive.Linq;
 using Avalonia.Media;
 using GuitarConfigurator.NetCore.Configuration.Serialization;
@@ -45,7 +46,7 @@ public class MidiOutput : OutputAxis
 
     public override SerializedOutput Serialize()
     {
-        return new SerializedMidiOutput(Input?.Serialise(), LedOn, LedOff, Min, Max, DeadZone, LedIndices, MidiType, Pitch,
+        return new SerializedMidiOutput(Input?.Serialise(), LedOn, LedOff, Min, Max, DeadZone, LedIndices.ToArray(), MidiType, Pitch,
             Command, CC, Channel);
     }
 
