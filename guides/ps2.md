@@ -10,7 +10,7 @@
     * Arduino Mega
     * You can also use a 5v Pro Micro, but you will also need a 3.3v voltage regulator
 ```danger
-  The arduino nano is NOT supported as it does not have the necessary hardware onboard for emulating a usb device. Some very very cheap arduino unos will also have this problem as they replace the programmable usb controller with a non programmable serial adapter.
+  The arduino nano is NOT supported as it does not have the necessary hardware onboard for emulating a usb device. Some very very cheap arduino unos will also have this problem as they replace the programmable usb controller with a non programmable serial adapter. I don't recommend UNOs at all, but if your arduino uno mentions anything about a ch340g it won't work.
 ```
 * PS2 Controller socket or some male dupont wires
 * 2x 1kΩ Resistor
