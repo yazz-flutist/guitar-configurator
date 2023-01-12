@@ -31,7 +31,7 @@ If you are unfamiliar with microcontrollers, you may also be unfamiliar with PCB
   * Arduino Uno
   * Arduino Mega
 ```danger
-  The arduino nano is NOT supported as it does not have the necessary hardware onboard for emulating a usb device. Some very very cheap arduino unos will also have this problem as they replace the programmable usb controller with a non programmable serial adapter.
+  The arduino nano is NOT supported as it does not have the necessary hardware onboard for emulating a usb device. Some very very cheap arduino unos will also have this problem as they replace the programmable usb controller with a non programmable serial adapter. I don't recommend UNOs at all, but if your arduino uno mentions anything about a ch340g it won't work.
 ```
 * A basic tilt switch (if you want tilt) (sometimes called a Mercury switch or ball tilt switch). 
   * It is recommended to use two, as this can help avoid accidental activations (this is what is done in some offical guitars)  
