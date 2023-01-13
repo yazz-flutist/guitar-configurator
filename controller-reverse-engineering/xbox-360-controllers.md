@@ -13,13 +13,13 @@ This descriptor is laid out like the following:
  0                   1                   2                   3  
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|      0x00     |      0x00     |    Subtype    |      0x25     |
+|      0x10     |  Type (0x01)  |    Subtype    |      0x25     |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|      0x81     |      0x14     |      0x03     |      0x03     |
+| Input Endpoint| Length (0x14) |      0x03     |      0x03     |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|      0x03     |      0x04     |      0x13     |      0x02     |
+|      0x03     |      0x04     |      0x13     |Output Endpoint|
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|      0x08     |      0x03     |      0x00     |
+| Length (0x08) |      0x03     |      0x03     |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
 
@@ -31,7 +31,7 @@ If a request with `bRequest` set to `HID_GetReport` (0x01) and with 'wValue' of 
  0                   1                   2                   3  
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|      0x00     |      0x08     |      0x00     |      0x00     |
+|   RID (0x00)  | Length (0x08) |      0x00     |      0x00     |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |      0x00     |      0x00     |      0x00     |      0x00     |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -41,17 +41,25 @@ Seems like this does not change between different types of controllers, as it is
 ### Unimplemented Control Requests
 At the current time, the following control requests are not required and we don't send them to save code space.
 
-#### ID
+#### Serial Number
 If a request with `bRequest` set to `HID_GetReport` (0x01) and with 'wValue' of 0x0000 is received, and with `bmRequestType` set to `Device To Host, Vendor and Device` then the following response is required:
+```
+ 0                   1                   2                   3  
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                   Serial number (big-endian)                  |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+```
+
+Examples:
+
 ```
  0                   1                   2                   3  
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |      0x00     |      0x12     |      0x28     |      0x61     |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-```
-Interesingly, guitars respond with the following id:
-```
+
  0                   1                   2                   3  
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -59,8 +67,26 @@ Interesingly, guitars respond with the following id:
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
 
-#### Capabilities 2
-If a request with `bRequest` set to `HID_GetReport` (0x01) and with 'wValue' of 0x0100 is received, and with `bmRequestType` set to `Device To Host, Vendor and Interface` then the following response is required:
+#### Capabilities 2 (Inputs)
+If a request with `bRequest` set to `HID_GetReport` (0x01) and with 'wValue' of 0x0100 is received, and with `bmRequestType` set to `Device To Host, Vendor and Interface` then a response describing what inputs the device is capable of is required:
+```
+ 0                   1                   2                   3  
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|   RID (0x00)  | Length (0x14) |            Buttons            |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+| Left Trigger  | Right Trigger |         Left Thumb X          |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|         Left Thumb Y          |         Right Thumb X         |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|         Right Thumb Y         |            Reserved           |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                                                               |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+```
+
+Example:
+
 ```
  0                   1                   2                   3  
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -76,7 +102,6 @@ If a request with `bRequest` set to `HID_GetReport` (0x01) and with 'wValue' of 
 |      0x00     |      0x00     |      0x00     |      0x00     |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
-Seems like this does not change between different types of controllers, as it is the same on both controllers and guitars.
 
 Some of these control requests were taken from the following site: https://forums.vigem.org/topic/45/rogue-xinput-capabilities-bug-part-2.
 
