@@ -1,5 +1,34 @@
 # Rock Band Auto-Calibration Sensors
 
+## Xbox 360
+The sensors can be activated by sending the following right motor values:
+
+```cpp
+#include <Xinput.h>
+
+#define XBOX360_AUTOCAL_MICROPHONE 0x6000
+#define XBOX360_AUTOCAL_LIGHT 0xFFFF
+#define XBOX360_AUTOCAL_DISABLE 0x0000
+
+void enableMic(int userIndex)
+{
+    XINPUT_VIBRATION vibration = { 0, XBOX360_AUTOCAL_MICROPHONE };
+    XInputSetState(userIndex, &vibration);
+}
+
+void enableLight(int userIndex)
+{
+    XINPUT_VIBRATION vibration = { 0, XBOX360_AUTOCAL_LIGHT };
+    XInputSetState(userIndex, &vibration);
+}
+
+void disableSensors(int userIndex)
+{
+    XINPUT_VIBRATION vibration = { 0, XBOX360_AUTOCAL_DISABLE };
+    XInputSetState(userIndex, &vibration);
+}
+```
+
 ## Wii
 Activating the sensors is as simple as sending the following as HID FEATURE Reports:
 
