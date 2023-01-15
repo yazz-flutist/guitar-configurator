@@ -54,17 +54,12 @@ private bool sendPacket(HidDevice device, byte[] packet)
         stream.SetFeature(cmd);
     }
 
-    // Read to determine whether or not the device registered the reports
+    // Optional: get feature report to get the device's response
+    // The report will be all 0s if the sensor was successfully enabled,
+    // and will be different once deactivated
     byte[] data = new byte[0x1C];
     stream.GetFeature(data);
     stream.Close();
-
-    foreach (byte b in data)
-    {
-        // Returns all 0s on success
-        if (b != 0)
-            return false;
-    }
 
     return true;
 }
