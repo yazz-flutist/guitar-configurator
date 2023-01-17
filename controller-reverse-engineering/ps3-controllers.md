@@ -20,9 +20,13 @@ The HID Report layout is below:
 |               |           gyroscope           |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
-### Axis Fields
-The axis fields are there as all face buttons are actually pressure sensitive and can measure a value from 0x00 being not pressed, to 0xFF being fully pressed. Triggers are handled here too.
-Accelerometer and gyroscope are 10 bit numbers
+### Pressure Axes
+All face buttons are pressure sensitive and can measure a value from 0x00 being not pressed, to 0xFF being fully pressed. Triggers are handled here too.
+
+### Accelerometers and Gyro
+Accelerometer and gyroscope are 10 bit numbers: nominally, they are neutral at 0x200, and range from 0x000 to 0x400. The actual neutral/min/max varies wildly between real controllers though, calibration is required for proper usage in games.
+
+From a resting position, X measures left/right acceleration (roll), Y measures forward/back acceleration (pitch), Z measures up/down acceleration (gravity), and the gyroscope measures instantaneous left/right rotation (yaw).
 
 ### Buttons
 Buttons are broken up as follows, with one bit per button
