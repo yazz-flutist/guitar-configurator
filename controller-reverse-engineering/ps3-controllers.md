@@ -20,13 +20,6 @@ The HID Report layout is below:
 |               |           gyroscope           |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
-### Pressure Axes
-All face buttons are pressure sensitive and can measure a value from 0x00 being not pressed, to 0xFF being fully pressed. Triggers are handled here too.
-
-### Accelerometers and Gyro
-Accelerometer and gyroscope are 10 bit numbers: nominally, they are neutral at 0x200, and range from 0x000 to 0x400. The actual neutral/min/max varies wildly between real controllers though, calibration is required for proper usage in games.
-
-From a resting position, X measures left/right acceleration (roll), Y measures forward/back acceleration (pitch), Z measures up/down acceleration (gravity), and the gyroscope measures instantaneous left/right rotation (yaw).
 
 ### Buttons
 Buttons are broken up as follows, with one bit per button
@@ -53,6 +46,14 @@ The hat values look like the below diagram. 0x08 is used when holding no buttons
   / | \
  5  4  3
 ```
+
+### Pressure Axes
+All face buttons are pressure sensitive and can measure a value from 0x00 being not pressed, to 0xFF being fully pressed. Triggers are handled here too.
+
+### Accelerometers and Gyro
+Accelerometer and gyroscope are 10 bit numbers: nominally, they are neutral at 0x200, and range from 0x000 to 0x400. The actual neutral/min/max varies wildly between real controllers though, calibration is required for proper usage in games.
+
+From a resting position, X measures left/right acceleration (roll), Y measures forward/back acceleration (pitch), Z measures up/down acceleration (gravity), and the gyroscope measures instantaneous left/right rotation (yaw).
 
 ## ID Control Request
 For making the PS button work, there are some extra requirements. When the device receives a control request, with a `bmRequestType` of `device to host, class and interface`, a `bmRequest` of `HID_GET_REPORT (0x01)`, and a `wValue` of `0x0300` (feature report), It needs to respond with the following bytes: 

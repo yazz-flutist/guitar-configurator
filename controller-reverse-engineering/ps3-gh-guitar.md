@@ -51,6 +51,12 @@ The buttons also change slightly from a normal controller.Note that blue and yel
 ### Hat
 Note that for the hat, 0x1f is returned when nothing is held, not 0x08.
 
+### Axis Fields
+For the fields with multiple buttons, pressing both buttons will return a value of 0, while only pressing one of the two buttons gives 0xFF. For every other axis, pressing the button returns 0xFF.
+
+### Tilt
+For tilt, you probably want to use accelerometer x, as the x axis is the axis that changes when you tilt the guitar.
+
 ## VIDs and PIDs
 Note that it is a requirement to use the GH vids and pids for the game to detect your controller, which are:
 
