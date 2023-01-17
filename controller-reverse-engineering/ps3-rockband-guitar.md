@@ -14,11 +14,11 @@ Most things about the controller are similar to the standard controller, except 
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |    padding    |    padding    |    padding    |    padding    |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|    padding    |    padding    |    padding    |accelerometer_x|
+|    padding    |    padding    |    padding    |    padding    |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|               |        accelerometer_z        |accelerometer_y|
+|    padding    |    padding    |    padding    |    padding    |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|               |           gyroscope           |
+|    padding    |    padding    |    padding    |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
 ### Buttons
@@ -27,9 +27,9 @@ The buttons also change slightly from a normal controller. Note that blue and ye
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |      blue     |     green     |      red      |     yellow    |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|     orange    |  star power   |       l1      |       r1      |
+|     orange    |  star power   |    padding    |    padding    |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|     select    |     start     | left_stick_in | right_stick_in|
+|     select    |     start     |    padding    |    padding    |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |       ps      |
 +-+-+-+-+-+-+-+-+
