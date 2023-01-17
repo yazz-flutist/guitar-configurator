@@ -1,37 +1,37 @@
 # Xbox 360 - Controller Identification and Capabilities
 ## Controller Identification
-Xbox 360 controllers use a concept called [WCID](https://github.com/pbatard/libwdi/wiki/WCID-Devices) to identify to windows that they are 360 controllers. 
+Xbox 360 controllers use a concept called [WCID](https://github.com/pbatard/libwdi/wiki/WCID-Devices) to identify to Windows that they are 360 controllers. 
 
-Wired controllers use a Compatible ID of "XUSB10", and Wireless controllers use a Compatible ID of "XUSB20".
+Wired controllers use a Compatible ID of `XUSB10`, and Wireless controllers use a Compatible ID of `XUSB20`.
 
-The libwdi github link above gives a lot of information about how to implement this, so I won't go into detail here.
+The link above gives a lot of information about how to implement this, so I won't go into detail here.
 ## Capabilities
 ### Descriptor
-Xbox 360 controllers have two steps for supporting custom capabilities. The first step is to have capability data in a usb descriptor of id 0x21.
+Xbox 360 controllers have two steps for supporting custom capabilities. The first step is to have capability data in a USB descriptor of type `0x21`.
 This descriptor is laid out like the following:
 ```
  0                   1                   2                   3  
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|      0x00     |      0x00     |    Subtype    |      0x25     |
+|      0x10     |  Type (0x01)  |    Subtype    |      0x25     |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|      0x81     |      0x14     |      0x03     |      0x03     |
+| Input Endpoint| Length (0x14) |      0x03     |      0x03     |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|      0x03     |      0x04     |      0x13     |      0x02     |
+|      0x03     |      0x04     |      0x13     |Output Endpoint|
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|      0x08     |      0x03     |      0x00     |
+| Length (0x08) |      0x03     |      0x03     |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
 
 ### Control Requests
 Step two is to reply with capabilities packets when specific control requests are sent. These are laid out below:
 #### Capabilities 1
-If a request with `bRequest` set to `HID_GetReport` (0x01) and with 'wValue' of 0x0000 is received, and with `bmRequestType` set to `Device To Host, Vendor and Interface` then the following response is required:
+If a request with `bRequest` set to `HID_GetReport` (`0x01`) and with `wValue` of 0x0000 is received, and with `bmRequestType` set to `Device To Host, Vendor and Interface` then the following response is required:
 ```
  0                   1                   2                   3  
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|      0x00     |      0x08     |      0x00     |      0x00     |
+|   RID (0x00)  | Length (0x08) |      0x00     |      0x00     |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |      0x00     |      0x00     |      0x00     |      0x00     |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -41,17 +41,25 @@ Seems like this does not change between different types of controllers, as it is
 ### Unimplemented Control Requests
 At the current time, the following control requests are not required and we don't send them to save code space.
 
-#### ID
-If a request with `bRequest` set to `HID_GetReport` (0x01) and with 'wValue' of 0x0000 is received, and with `bmRequestType` set to `Device To Host, Vendor and Device` then the following response is required:
+#### Serial Number
+If a request with `bRequest` set to `HID_GetReport` (`0x01`) and with `wValue` of 0x0000 is received, and with `bmRequestType` set to `Device To Host, Vendor and Device` then the following response is required:
+```
+ 0                   1                   2                   3  
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                   Serial number (big-endian)                  |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+```
+
+Examples:
+
 ```
  0                   1                   2                   3  
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |      0x00     |      0x12     |      0x28     |      0x61     |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-```
-Interesingly, guitars respond with the following id:
-```
+
  0                   1                   2                   3  
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -59,8 +67,26 @@ Interesingly, guitars respond with the following id:
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
 
-#### Capabilities 2
-If a request with `bRequest` set to `HID_GetReport` (0x01) and with 'wValue' of 0x0100 is received, and with `bmRequestType` set to `Device To Host, Vendor and Interface` then the following response is required:
+#### Capabilities 2 (Inputs)
+If a request with `bRequest` set to `HID_GetReport` (`0x01`) and with `wValue` of `0x0100` is received, and with `bmRequestType` set to `Device To Host, Vendor and Interface` then a response describing what inputs the device is capable of is required:
+```
+ 0                   1                   2                   3  
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|   RID (0x00)  | Length (0x14) |            Buttons            |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+| Left Trigger  | Right Trigger |         Left Thumb X          |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|         Left Thumb Y          |         Right Thumb X         |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|         Right Thumb Y         |            Reserved           |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                                                               |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+```
+
+Example:
+
 ```
  0                   1                   2                   3  
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -76,9 +102,10 @@ If a request with `bRequest` set to `HID_GetReport` (0x01) and with 'wValue' of 
 |      0x00     |      0x00     |      0x00     |      0x00     |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
-Seems like this does not change between different types of controllers, as it is the same on both controllers and guitars.
 
 Some of these control requests were taken from the following site: https://forums.vigem.org/topic/45/rogue-xinput-capabilities-bug-part-2.
 
-## Interesting findings
-If you don't send capabilities 1, then it is possible for a controller to crash DWM on windows. Some windows store games come with [Windows Gaming Services](https://www.microsoft.com/en-us/p/gaming-services/9mwpm2cqnlhn) on windows 10. It seems that Windows Gaming Services is loaded into DWM by windows, and it has a bug where if capabilites 1 is missing, then it crashes, and it takes DWM with it. This will cause the windows desktop to crash and restart.
+## Interesting Findings
+If you don't send capabilities 1, then it is possible for a controller to crash DWM on windows.
+Some Windows Store games come with [Windows Gaming Services](https://www.microsoft.com/en-us/p/gaming-services/9mwpm2cqnlhn) on Windows 10.
+It seems that Windows Gaming Services is loaded into DWM by windows, and it has a bug where if capabilites 1 is missing, then it crashes, and it takes DWM with it. This will cause the Windows desktop to crash and restart.

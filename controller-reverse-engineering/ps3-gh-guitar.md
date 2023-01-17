@@ -1,11 +1,9 @@
 # PS3 - Guitar Hero Guitar Controller
-Most things about the controller are similar to the standard controller, except the buttons and axis have different meanings
+Most things about the controller are similar to the standard controller, except the buttons and axis have different meanings.
 
-Interestingly, the ps3 gh guitar is just different to all other rhythm controllers.
+Interestingly, the PS3 GH guitar has some notable differences compared to other rhythm controllers.
 
-## Hid Report
-The HID Report layout is below:
-Guitar:
+## HID Report Layout
 
 ```
  0                   1                   2                   3
@@ -25,47 +23,50 @@ Guitar:
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |               |        accelerometer_z        |accelerometer_y|
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|               |           gyroscope           |
+|               |    padding    |    padding    |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
-### Axis Fields
-For the fields with multiple buttons, pressing both buttons with return a value of 0, while only pressing one of the two buttons gives 0xFF. For every other axis, pressing the button returns 0xFF.
-### Tilt
-For tilt, you probably want to use accelerometer x, as the x axis is the axis that changes when you tilt the guitar.
-
 
 ### Buttons
-The buttons also change slightly from a normal controller.Note that blue and yellow are switch when compared to all other rhythm controllers!
+The buttons also change slightly from a normal controller. Note that blue and yellow are switched when compared to the other rhythm controllers!
 
 ```
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |     yellow    |     green     |      red      |      blue     |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|     orange    |     pedal     |       l1      |       r1      |
+|     orange    |     pedal     |    padding    |    padding    |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|     select    |     start     | left_stick_in | right_stick_in|
+|     select    |     start     |    padding    |    padding    |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |       ps      |
 +-+-+-+-+-+-+-+-+
 ```
 ### Hat
-Note that for the hat, 0x1f is returned when nothing is held, not 0x08.
+Note that for the hat, `0x1f` is returned when nothing is held, not `0x08`.
 
-## VIDs and PIDs
-Note that it is a requirement to use the GH vids and pids for the game to detect your controller, which are:
+### Axis Fields
+For the fields with multiple buttons, pressing both buttons will return a value of 0, while only pressing one of the two buttons gives 0xFF. For every other axis, pressing the button returns 0xFF.
 
-| Device | VID    | PID    |
-| ------ | ------ | ------ |
-| Guitar | 0x12ba | 0x0100 |
+### Tilt
+Accelerometer X is the axis used for typical tilt. The other two axes are unneeded and can be ignored if you're not interested in them.
+
+## VID and PID
+Note that it is a requirement to use the following VID and PID for the game to detect your controller as a guitar:
+
+| VID      | PID      |
+| -------- | -------- |
+| `0x12ba` | `0x0100` |
 
 ## ID Control Request
-The ID Control Request changes slightly, as we use an id of 0x06, not 0x07. The revised request is below: Note that without this change, the tilt axis will not work.
+The ID Control Request changes slightly, as we use an ID of `0x06`, not `0x07`. The revised request is below:
 ```
  0                   1                   2                   3  
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|      0x21     |      0x26     |      0x01     |      0x06     |
+|      0x21     |      0x26     |      0x01     |   ID (0x06)   |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |      0x00     |      0x00     |      0x00     |      0x00     |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
+
+Note that without this change, the tilt axis will not work.
