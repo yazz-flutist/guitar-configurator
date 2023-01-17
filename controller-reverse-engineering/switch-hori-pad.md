@@ -30,8 +30,8 @@ Some buttons appear swapped around relative to their PS3 counterparts, but the b
 ```
 
 ## VIDs and PIDs
-Note that it is a requirement to use the Hori Pad vid and pid for the game to detect your controller, which is:
+Note that it is a requirement to use the following VID and PID for the Switch to detect your controller:
 
-| Device   | VID    | PID    |
-| -------- | ------ | ------ |
-| Hori Pad | 0x0F0D | 0x0092 |
+| VID      | PID      |
+| -------- | -------- |
+| `0x0F0D` | `0x0092` |

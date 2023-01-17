@@ -36,11 +36,11 @@ The buttons also change slightly from a normal controller. Note that blue and ye
 ```
 
 ## VID and PID
-Note that it is a requirement to use the rockband vids and pids for this, which are:
+Note that it is a requirement to use the following VID and PID for the game to detect your controller as a drumkit:
 
-| Device | VID    | PID    |
-| ------ | ------ | ------ |
-| Drum   | 0x12ba | 0x0210 |
+| VID      | PID      |
+| -------- | -------- |
+| `0x12ba` | `0x0210` |
 
 ## ID Control Request
 The ID Control Request changes slightly, as we use an id of 0x00, not 0x07. The revised request is below:

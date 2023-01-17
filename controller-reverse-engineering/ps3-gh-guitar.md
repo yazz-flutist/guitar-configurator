@@ -57,12 +57,12 @@ For the fields with multiple buttons, pressing both buttons will return a value 
 ### Tilt
 For tilt, you probably want to use accelerometer x, as the x axis is the axis that changes when you tilt the guitar.
 
-## VIDs and PIDs
-Note that it is a requirement to use the GH vids and pids for the game to detect your controller, which are:
+## VID and PID
+Note that it is a requirement to use the following VID and PID for the game to detect your controller as a guitar:
 
-| Device | VID    | PID    |
-| ------ | ------ | ------ |
-| Guitar | 0x12ba | 0x0100 |
+| VID      | PID      |
+| -------- | -------- |
+| `0x12ba` | `0x0100` |
 
 ## ID Control Request
 The ID Control Request changes slightly, as we use an id of 0x06, not 0x07. The revised request is below: Note that without this change, the tilt axis will not work.
