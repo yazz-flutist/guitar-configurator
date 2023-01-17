@@ -55,8 +55,7 @@ The hat values look like the below diagram. 0x08 is used when holding no buttons
 ```
 
 ## ID Control Request
-For making the PS button work, there are some extra requirements
-When the device receives a control request, with a `bmRequestType` of `device to host, class and interface` and a `bmRequest` of `HID_GET_REPORT (0x01)`, It needs to respond with the following bytes: 
+For making the PS button work, there are some extra requirements. When the device receives a control request, with a `bmRequestType` of `device to host, class and interface`, a `bmRequest` of `HID_GET_REPORT (0x01)`, and a `wValue` of `0x0300` (feature report), It needs to respond with the following bytes: 
 ```
  0                   1                   2                   3  
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
