@@ -91,7 +91,7 @@ Once you have successfully modded one guitar (or even during your first) you wil
 
 ## Start and Select
 
-![360startselect](...assets/images/360startselect.jpg)
+![360startselect](assets/images/360startselect.jpg)
 
 ![wiilpstartselect](assets/images/wiiLPstartselect.jpg)
 
@@ -111,7 +111,7 @@ To wire an xplorer start/select board you will have to solder directly to the co
 
 If you are working on a controller with only "2" pins as shown below, you will need to desolder the bridged pins and run 3 wires yourself as noted above for the whammy to work best with the configurator.
 
-2 PIN IMAGE
+![2pinwhammy](assets/images/2wirewhammy.jpg)
 
 ## Tilt
 1. Connect your tilt sensor to the microcontroller.
@@ -125,12 +125,20 @@ If you are working on a controller with only "2" pins as shown below, you will n
    * For an Arduino Mega, pin 20 is SDA and pin 21 is SCL.
 
 ## Joystick (or DPad)
-For guitars with a DPad there will be a single common ground and a pin for each direction. Just like for start and select, you will need to follow the traces to figure out which pin is GND. Mark GND, then connect it to a GND pin on the microcontroller. The other 4 pins can be connected to any digital pin on the microcontroller.
+For d-pads that are integrated with the main board it is advised you skip wiring the dpad as you have to solder directly to the contacts and run wires accross the board. You will either be able to use your keyboard for these buttons, or they really won't really be needed as the games were designed to be controlled with the guitar alone. Below is an example of what this can look like, and why it is advisable to skip.
+
+![curseddpad](assets/images/curseddpad.jpg)
+
+For guitars with a DPad that is seperate, it will be much easier to wire as you can follow the traces and wire it to the pins like you would for start/select. 
+
+![wtdpad](assets/images/wtdpad.jpg)
+
+   1. Find ground. There will be a single common ground and a pin for each direction or multiple "grounds" depending on the model. (some may once again be labeled as col or column) Just like for start and select, you will need to follow the traces to figure out which pin is GND. Mark GND, then connect it to a GND pin on the microcontroller. If there are more than one ground wires, you can twist them together and combine them again.
+   2. Up and down on the dpad MUST be connected to the same pins you will be using for strum. You will want to twist those wires together and solder them to the same pin. You may want to wait until you are working on the strum to connect these pins.
+   3. Home, left, and right can be connected to any unused digital pin on the microcontroller. 
 
 For guitars with a joystick, there will be four pins, one is VCC, one is GND, one is the x axis and one is the y axis. You can work out which is which by tracing the traces, however on some guitars the traces are labelled for you. The joystick needs to go to an analogue pin (one of the A pins)
-   1. Connect VCC and GND
-   2. Connect the X Axis to an analogue pin. These are labeled with an A on the microcontroller. 
-   3. Connect the Y Axis to a different analogue pin.
+
 
 ## Frets
 1. For the frets, if it is not labeled it is easiest to open up the neck and follow the traces between the fret contacts. The ground wire traces will connect to all of the fret contacts, whereas a fret trace will lead to a single fret contact. At the end of this guide, there are some images for known neck pinouts. If using the multimeter, test between the fret wire and the ground wire, and the multimeter should beep when the fret is pressed.
