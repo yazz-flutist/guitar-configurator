@@ -90,15 +90,28 @@ For every function of the guitar, you will follow these same 3 basic steps. More
 Once you have successfully modded one guitar (or even during your first) you will find it easiest to disconnect everything then begin soldering as it gives you more room to work. To keep the relevant information in this guide easy to find, information is sorted by function. 
 
 ## Start and Select
-1. If it is not labeled on the motherboard, you need to figure out which pin is GND. If you remove the membrane, you can most likely see which pin connects to both start and select by following the traces - that pin is GND. Marking GND with a sharpie or using a differently colored wire is reccomended. If you are still unsure, the multimeter can help you confirm if you have the wires correct, as it will beep when you hit a button and have the correct wires.
-2. Connect the common ground to a GND on the microcontroller.
+
+![360startselect](...assets/images/360startselect.jpg)
+
+![wiilpstartselect](assets/images/wiiLPstartselect.jpg)
+
+1. If it is not labeled on the motherboard, you need to figure out which pin (or pins) is GND. If you remove the membrane, you will be able to see which pin connects to both start and select by following the traces - that pin is GND. (if there are multiple "grounds" they may be labeled as col, or column) Marking GND with a sharpie or using a differently colored wire is reccomended. If you are still unsure, the multimeter can help you confirm if you have the wires correct, as it will beep when you hit a button and have the correct wires. There are examples of the 360 WT and WiiLP above.
+2. Connect the common ground to a GND on the microcontroller. If there are two ground wires, you can twist them together and put them in one ground pin on the microcontroller. This will sometimes be necessary when using a microcontroller that has a smaller number of pins.
 3. Connect each button to an unused digital pin on the microcontroller. 
 
+```note
+To wire an xplorer start/select board you will have to solder directly to the contacts and cut the traces that connect to each contact. It is not reccomended you try to mod an xplorer as your first project because this can be difficult.
+```
+
 ## Whammy
-1. With the whammy, the middle pin is the data pin, and one outer pin pins is VCC while the other pin is GND (it doesn't matter which one, you can flip it when programming later if needed). Whammy needs to go to an analogue pin.
+1. With most whammy's there are 3 pins. (if there are 4, you do not need the fourth. 2 pins is discussed below) The middle pin is the data pin, one outer pin is VCC while the other pin is GND (it doesn't matter which one, you can flip it when programming later if needed). Whammy needs to go to an analogue pin.
 2. Connect VCC and GND to the microcontroller. (the two outside wires)
    * If your whammy is not responding correctly in game, you may need to swap VCC and GND around.
 3. Connect the data (middle) pin to an analogue pin on the microcontroller. These are labeled with an A on the microcontroller.
+
+If you are working on a controller with only "2" pins as shown below, you will need to desolder the bridged pins and run 3 wires yourself as noted above for the whammy to work best with the configurator.
+
+2 PIN IMAGE
 
 ## Tilt
 1. Connect your tilt sensor to the microcontroller.
